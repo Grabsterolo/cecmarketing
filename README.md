@@ -1,5 +1,5 @@
 # CEC Marketing Dashboard
-<!-- test commit -->
+<!-- test commit 2 -->
 
 Portal interno de mercadeo del Centro Europeo de Cirugía. Mismo sistema de diseño que `ceccolaboradores` (login, sidebar, paleta de colores, tipografía), construido como proyecto separado para esta función.
 
