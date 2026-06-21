@@ -1,0 +1,11 @@
+# Variables de entorno con secretos
+.env
+.env.local
+.dev.vars
+
+# Dependencias y build
+node_modules/
+dist/
+
+# Sistema
+.DS_Store
