@@ -18,6 +18,20 @@ const SECTION_TITLES = {
   "configurar-sofia": "Configurar a Sofía",
 };
 
+const DAYS = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
+const MONTHS = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+
+function getDateLabel() {
+  const now = new Date();
+  return `${DAYS[now.getDay()]} ${now.getDate()} DE ${MONTHS[now.getMonth()]} DE ${now.getFullYear()}`;
+}
+
+function getGreeting(name) {
+  const hour = new Date().getHours();
+  const saludo = hour >= 5 && hour < 12 ? "Buenos días" : hour >= 12 && hour < 19 ? "Buenas tardes" : "Buenas noches";
+  return name ? `${saludo}, ${name}` : saludo;
+}
+
 export function Dashboard({ onLogout, profile }) {
   const [active, setActive] = useState("inicio");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -43,6 +57,9 @@ export function Dashboard({ onLogout, profile }) {
 
   const [dashDone, setDashDone] = useState(false);
   const dashboardInAnim = (!dashDone && !noAnim) ? { animation: "dashboardIn 0.45s ease-out both" } : {};
+
+  const firstName = profile?.full_name ? profile.full_name.split(" ")[0] : "";
+  const isInicio = displayActive === "inicio";
 
   function renderSection() {
     switch (displayActive) {
@@ -73,10 +90,20 @@ export function Dashboard({ onLogout, profile }) {
           </button>
         </div>
         <MobileDrawer open={drawerOpen} onClose={closeDrawer} active={active} setActive={navigate} onLogout={onLogout} />
-        <div style={{ padding: "20px 16px 40px", ...dashboardInAnim }} onAnimationEnd={() => setDashDone(true)}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 600, color: COLORS.green, margin: "0 0 18px" }}>
-            {SECTION_TITLES[displayActive]}
-          </h1>
+        <div style={{ padding: "24px 16px 48px", ...dashboardInAnim }} onAnimationEnd={() => setDashDone(true)}>
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ fontSize: 10, letterSpacing: "0.25em", color: COLORS.gold, marginBottom: 6, textTransform: "uppercase", fontWeight: 600 }}>
+              {getDateLabel()}
+            </p>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, fontWeight: 600, margin: "0 0 6px", color: COLORS.green }}>
+              {isInicio ? getGreeting(firstName) : SECTION_TITLES[displayActive]}
+            </h1>
+            {isInicio && (
+              <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.6, fontStyle: "italic" }}>
+                Aquí tienes el resumen del mercadeo de hoy.
+              </p>
+            )}
+          </div>
           <div style={sectionAnim}>{renderSection()}</div>
         </div>
       </div>
@@ -86,11 +113,21 @@ export function Dashboard({ onLogout, profile }) {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: COLORS.bg, fontFamily: "'Manrope', sans-serif" }}>
       <Sidebar active={active} setActive={navigate} onLogout={onLogout} />
-      <div style={{ flex: 1, padding: "36px 44px 60px", ...dashboardInAnim }} onAnimationEnd={() => setDashDone(true)}>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, fontWeight: 600, color: COLORS.green, margin: "0 0 24px" }}>
-          {SECTION_TITLES[displayActive]}
-        </h1>
-        <div style={{ maxWidth: 1200, margin: "0 auto", ...sectionAnim }}>{renderSection()}</div>
+      <div style={{ flex: 1, padding: "36px 40px", ...dashboardInAnim }} onAnimationEnd={() => setDashDone(true)}>
+        <div style={{ marginBottom: 32 }}>
+          <p style={{ fontSize: 11, letterSpacing: "0.25em", color: COLORS.gold, marginBottom: 6, textTransform: "uppercase", fontWeight: 600 }}>
+            {getDateLabel()}
+          </p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 36, fontWeight: 600, margin: "0 0 6px", color: COLORS.green }}>
+            {isInicio ? getGreeting(firstName) : SECTION_TITLES[displayActive]}
+          </h1>
+          {isInicio && (
+            <p style={{ fontSize: 14, color: COLORS.textMuted, margin: 0, lineHeight: 1.6, fontStyle: "italic" }}>
+              Aquí tienes el resumen del mercadeo de hoy.
+            </p>
+          )}
+        </div>
+        <div style={sectionAnim}>{renderSection()}</div>
       </div>
     </div>
   );

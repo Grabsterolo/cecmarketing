@@ -3,6 +3,7 @@ import { LayoutDashboard, MessageCircle, Sparkles } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card, CardHeader } from "../ui/Card.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
+import { useIsMobile } from "../../hooks/useIsMobile.js";
 
 function SourceStatusRow({ source }) {
   return (
@@ -20,34 +21,35 @@ function SourceStatusRow({ source }) {
 }
 
 export function DashboardHome({ profile, setActive }) {
+  const isMobile = useIsMobile();
+
+  const cards = (
+    <>
+      <Card style={{ cursor: "pointer" }} onClick={() => setActive?.("metricas")}>
+        <LayoutDashboard size={22} color={COLORS.gold} />
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: COLORS.green, margin: "12px 0 6px" }}>Métricas</h3>
+        <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.5 }}>Meta Ads y Google Ads / Analytics en un solo lugar.</p>
+      </Card>
+      <Card style={{ cursor: "pointer" }} onClick={() => setActive?.("sofia")}>
+        <MessageCircle size={22} color={COLORS.gold} />
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: COLORS.green, margin: "12px 0 6px" }}>Conversaciones de Sofía</h3>
+        <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.5 }}>Qué pregunta la gente por WhatsApp, en tiempo real.</p>
+      </Card>
+      <Card style={{ cursor: "pointer" }} onClick={() => setActive?.("recomendaciones")}>
+        <Sparkles size={22} color={COLORS.gold} />
+        <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: COLORS.green, margin: "12px 0 6px" }}>Recomendaciones</h3>
+        <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.5 }}>Patrones detectados al cruzar campañas y conversaciones.</p>
+      </Card>
+    </>
+  );
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, color: COLORS.green, margin: "0 0 4px" }}>
-          Bienvenido{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-        </h2>
-        <p style={{ fontSize: 14, color: COLORS.textMuted, margin: 0 }}>
-          Este es el punto central para revisar el mercadeo del Centro Europeo de Cirugía.
-        </p>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-        <Card style={{ cursor: "pointer" }} onClick={() => setActive?.("metricas")}>
-          <LayoutDashboard size={22} color={COLORS.gold} />
-          <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: COLORS.green, margin: "12px 0 6px" }}>Métricas</h3>
-          <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.5 }}>Meta Ads y Google Ads / Analytics en un solo lugar.</p>
-        </Card>
-        <Card style={{ cursor: "pointer" }} onClick={() => setActive?.("sofia")}>
-          <MessageCircle size={22} color={COLORS.gold} />
-          <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: COLORS.green, margin: "12px 0 6px" }}>Conversaciones de Sofía</h3>
-          <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.5 }}>Qué pregunta la gente por WhatsApp, en tiempo real.</p>
-        </Card>
-        <Card style={{ cursor: "pointer" }} onClick={() => setActive?.("recomendaciones")}>
-          <Sparkles size={22} color={COLORS.gold} />
-          <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: COLORS.green, margin: "12px 0 6px" }}>Recomendaciones</h3>
-          <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.5 }}>Patrones detectados al cruzar campañas y conversaciones.</p>
-        </Card>
-      </div>
+      {isMobile ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>{cards}</div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>{cards}</div>
+      )}
 
       <Card>
         <CardHeader title="Estado de las fuentes de datos" />
