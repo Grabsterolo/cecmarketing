@@ -119,7 +119,7 @@ export function LoginScreen({ onLogin }) {
 
   if (isMobile) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Manrope', sans-serif", background: "#FFF" }}>
+      <div style={{ minHeight: "100vh", width: "100%", display: "flex", flexDirection: "column", fontFamily: "'Manrope', sans-serif", background: "#FFF" }}>
         <div style={{ background: SIDEBAR_BG, padding: "28px 32px 22px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
           <div style={anim(0)}><Logo width={200} /></div>
           <div style={{ width: 50, height: 1.5, background: COLORS.gold, opacity: 0.6, ...anim(80) }} />
@@ -139,7 +139,7 @@ export function LoginScreen({ onLogin }) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", fontFamily: "'Manrope', sans-serif" }}>
+    <div style={{ minHeight: "100vh", width: "100%", display: "flex", fontFamily: "'Manrope', sans-serif" }}>
       <div style={{
         flex: "0 0 45%", background: SIDEBAR_BG,
         display: "flex", flexDirection: "column", justifyContent: "center",
