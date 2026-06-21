@@ -90,7 +90,7 @@ export function Dashboard({ onLogout, profile }) {
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, fontWeight: 600, color: COLORS.green, margin: "0 0 24px" }}>
           {SECTION_TITLES[displayActive]}
         </h1>
-        <div style={{ maxWidth: 900, ...sectionAnim }}>{renderSection()}</div>
+        <div style={{ maxWidth: 1200, margin: "0 auto", ...sectionAnim }}>{renderSection()}</div>
       </div>
     </div>
   );
