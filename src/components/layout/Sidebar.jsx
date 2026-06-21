@@ -119,7 +119,7 @@ export function Sidebar({ active, setActive, onLogout }) {
         </div>
       </div>
 
-      <nav className="sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto" }}>
+      <nav className="sidebar-nav" style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto", minHeight: 0, flex: 1, justifyContent: "flex-start" }}>
         {NAV_ITEMS.map((item) => (
           <NavButton
             key={item.key}
