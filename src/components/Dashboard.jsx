@@ -57,7 +57,7 @@ export function Dashboard({ onLogout, profile }) {
 
   if (isMobile) {
     return (
-      <div style={{ minHeight: "100vh", width: "100%", background: COLORS.bg, fontFamily: "'Manrope', sans-serif" }}>
+      <div style={{ minHeight: "100vh", background: COLORS.bg, fontFamily: "'Manrope', sans-serif" }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "16px 20px", background: COLORS.panel, borderBottom: `1px solid ${COLORS.border}`,
@@ -84,7 +84,7 @@ export function Dashboard({ onLogout, profile }) {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", width: "100%", background: COLORS.bg, fontFamily: "'Manrope', sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: COLORS.bg, fontFamily: "'Manrope', sans-serif" }}>
       <Sidebar active={active} setActive={navigate} onLogout={onLogout} />
       <div style={{ flex: 1, padding: "36px 44px 60px", ...dashboardInAnim }} onAnimationEnd={() => setDashDone(true)}>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 30, fontWeight: 600, color: COLORS.green, margin: "0 0 24px" }}>
