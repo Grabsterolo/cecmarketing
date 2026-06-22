@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Settings2, Save, Check } from "lucide-react";
+import { Settings2, Save, Check, Zap } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card, CardHeader } from "../ui/Card.jsx";
 import { taStyle, btnSubmitStyle } from "../../styles/forms.js";
@@ -48,6 +48,8 @@ export function ConfigureSofiaSection() {
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState(null);
+  const [reindexing, setReindexing] = useState(false);
+  const [reindexResult, setReindexResult] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -77,6 +79,25 @@ export function ConfigureSofiaSection() {
   function handleChange(fieldKey, value) {
     if (fieldKey === "system_prompt") setSystemPrompt(value);
     else setKnowledge(value);
+  }
+
+  async function handleReindex() {
+    setReindexing(true);
+    setReindexResult(null);
+    try {
+      const res = await fetch("/api/reindex", { method: "POST" });
+      const data = await res.json();
+      if (data.error) {
+        setReindexResult({ ok: false, message: data.error });
+      } else {
+        setReindexResult({ ok: true, message: `✓ ${data.chunks} fragmentos indexados` });
+        setTimeout(() => setReindexResult(null), 3000);
+      }
+    } catch {
+      setReindexResult({ ok: false, message: "Error de conexión al re-indexar." });
+    } finally {
+      setReindexing(false);
+    }
   }
 
   async function handleSave(fieldKey) {
@@ -143,6 +164,39 @@ export function ConfigureSofiaSection() {
             saving={savingField === "knowledge_base"}
             saved={savedField === "knowledge_base"}
           />
+
+          <Card>
+            <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "0 0 14px", lineHeight: 1.6 }}>
+              Después de guardar cambios en la base de conocimiento, re-indexa para que Sofía pueda encontrar la información relevante mediante búsqueda semántica.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <button
+                onClick={handleReindex}
+                disabled={reindexing}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: reindexing ? COLORS.greenSoft : COLORS.green,
+                  border: "none", borderRadius: 8, padding: "11px 20px",
+                  color: "#fff", fontSize: 14, fontWeight: 700,
+                  cursor: reindexing ? "not-allowed" : "pointer",
+                  fontFamily: "'Manrope', sans-serif",
+                  boxShadow: "0 4px 14px rgba(31,74,64,0.3)",
+                  opacity: reindexing ? 0.75 : 1,
+                }}
+              >
+                <Zap size={15} />
+                {reindexing ? "Re-indexando..." : "Re-indexar para Sofía"}
+              </button>
+              {reindexResult && (
+                <p style={{
+                  fontSize: 13, fontWeight: 600, margin: 0,
+                  color: reindexResult.ok ? "#2C6356" : "#e07070",
+                }}>
+                  {reindexResult.message}
+                </p>
+              )}
+            </div>
+          </Card>
         </>
       )}
     </div>
