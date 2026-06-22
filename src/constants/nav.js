@@ -1,5 +1,5 @@
 import {
-  Home, LayoutDashboard, MessageCircle, Sparkles, Settings2,
+  Home, LayoutDashboard, MessageCircle, Sparkles, Settings2, FlaskConical,
 } from "lucide-react";
 
 export const ROTATING_WORDS = ["campañas", "conversaciones", "métricas", "recomendaciones", "tu marca"];
@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
   { key: "sofia", label: "Conversaciones de Sofía", icon: MessageCircle },
   { key: "recomendaciones", label: "Recomendaciones", icon: Sparkles },
   { key: "configurar-sofia", label: "Configurar a Sofía", icon: Settings2 },
+  { key: "probar-sofia", label: "Probar a Sofía", icon: FlaskConical },
 ];
 
 // Fuentes de datos que el dashboard puede mostrar. "connected: false" hasta

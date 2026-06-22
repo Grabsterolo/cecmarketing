@@ -9,6 +9,7 @@ import { MetricsSection } from "./sections/MetricsSection.jsx";
 import { SofiaConversationsSection } from "./sections/SofiaConversationsSection.jsx";
 import { RecommendationsSection } from "./sections/RecommendationsSection.jsx";
 import { ConfigureSofiaSection } from "./sections/ConfigureSofiaSection.jsx";
+import { TestSofiaSection } from "./sections/TestSofiaSection.jsx";
 
 const SECTION_TITLES = {
   inicio: "Inicio",
@@ -16,6 +17,7 @@ const SECTION_TITLES = {
   sofia: "Conversaciones de Sofía",
   recomendaciones: "Recomendaciones",
   "configurar-sofia": "Configurar a Sofía",
+  "probar-sofia": "Probar a Sofía",
 };
 
 const DAYS = ["DOMINGO", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO"];
@@ -68,6 +70,7 @@ export function Dashboard({ onLogout, profile }) {
       case "sofia": return <SofiaConversationsSection />;
       case "recomendaciones": return <RecommendationsSection />;
       case "configurar-sofia": return <ConfigureSofiaSection />;
+      case "probar-sofia": return <TestSofiaSection />;
       default: return null;
     }
   }
