@@ -94,11 +94,10 @@ export function TestSofiaSection() {
     setTyping(true);
 
     try {
-      const fullSystem = buildSystemPrompt(systemPrompt, knowledge);
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ system: fullSystem, messages: newMessages }),
+        body: JSON.stringify({ system: systemPrompt, knowledge_base: knowledge, messages: newMessages }),
       });
       const data = await res.json();
       const reply = data?.content?.[0]?.text ?? "(Sin respuesta)";
