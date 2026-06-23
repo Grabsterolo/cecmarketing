@@ -19,15 +19,67 @@ export async function onRequestPost({ env }) {
     const [row] = await configRes.json();
     if (!row?.knowledge_base) throw new Error("knowledge_base está vacío.");
 
-    // 2. Dividir en chunks por sección (## Título), ignorar < 100 chars
-    const chunks = row.knowledge_base
-      .split(/(?=^## )/m)
-      .map(s => s.trim())
-      .filter(s => s.length >= 100)
-      .map(section => ({
-        category: section.split("\n")[0].replace(/^##\s*/, "").trim(),
-        content: section,
-      }));
+    // 2. Dividir en chunks granulares (un chunk por procedimiento)
+    const isProcedureLine = l => /^\*\*[^*]+\*\*$/.test(l.trim());
+
+    function splitIntoChunks(text) {
+      const result = [];
+      const sections = text.split(/(?=^## )/m).map(s => s.trim()).filter(Boolean);
+
+      for (const section of sections) {
+        const sectionLines = section.split("\n");
+        const hasProcedures = sectionLines.some(l => isProcedureLine(l));
+
+        if (!hasProcedures) {
+          if (section.length >= 80) {
+            const category = sectionLines[0].replace(/^#+\s*/, "").trim();
+            result.push({ category, content: section });
+          }
+          continue;
+        }
+
+        const subsections = section.split(/(?=^### )/m).map(s => s.trim()).filter(Boolean);
+
+        for (const sub of subsections) {
+          const subLines = sub.split("\n");
+          const subHeader = subLines[0];
+          const subHasProcedures = subLines.some(l => isProcedureLine(l));
+
+          if (!subHasProcedures) {
+            if (sub.length >= 80) {
+              const category = subHeader.replace(/^#+\s*/, "").trim();
+              result.push({ category, content: sub });
+            }
+            continue;
+          }
+
+          let currentName = null;
+          let currentLines = [];
+
+          for (const line of subLines) {
+            if (isProcedureLine(line)) {
+              if (currentName) {
+                const content = currentLines.join("\n").trim();
+                if (content.length >= 80) result.push({ category: currentName, content });
+              }
+              currentName = line.trim().replace(/\*\*/g, "");
+              currentLines = [subHeader, line];
+            } else if (currentName) {
+              currentLines.push(line);
+            }
+          }
+
+          if (currentName) {
+            const content = currentLines.join("\n").trim();
+            if (content.length >= 80) result.push({ category: currentName, content });
+          }
+        }
+      }
+
+      return result;
+    }
+
+    const chunks = splitIntoChunks(row.knowledge_base);
 
     // 3. Generar embeddings con OpenAI
     const chunksWithEmbeddings = await Promise.all(

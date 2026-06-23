@@ -63,16 +63,64 @@ async function fetchKnowledgeBase() {
   return row.knowledge_base;
 }
 
-// ── 2. Dividir en chunks por sección (## Título) ─────────────────────────────
+// ── 2. Dividir en chunks granulares (un chunk por procedimiento) ─────────────
 function splitIntoChunks(text) {
-  return text
-    .split(/(?=^## )/m)
-    .map(s => s.trim())
-    .filter(s => s.length >= 100)
-    .map(section => {
-      const firstLine = section.split("\n")[0].replace(/^##\s*/, "").trim();
-      return { category: firstLine, content: section };
-    });
+  const chunks = [];
+  const isProcedureLine = l => /^\*\*[^*]+\*\*$/.test(l.trim());
+  const sections = text.split(/(?=^## )/m).map(s => s.trim()).filter(Boolean);
+
+  for (const section of sections) {
+    const sectionLines = section.split("\n");
+    const hasProcedures = sectionLines.some(l => isProcedureLine(l));
+
+    if (!hasProcedures) {
+      if (section.length >= 80) {
+        const category = sectionLines[0].replace(/^#+\s*/, "").trim();
+        chunks.push({ category, content: section });
+      }
+      continue;
+    }
+
+    // Dividir en subsecciones (###) y dentro de cada una, por **Procedimiento**
+    const subsections = section.split(/(?=^### )/m).map(s => s.trim()).filter(Boolean);
+
+    for (const sub of subsections) {
+      const subLines = sub.split("\n");
+      const subHeader = subLines[0];
+      const subHasProcedures = subLines.some(l => isProcedureLine(l));
+
+      if (!subHasProcedures) {
+        if (sub.length >= 80) {
+          const category = subHeader.replace(/^#+\s*/, "").trim();
+          chunks.push({ category, content: sub });
+        }
+        continue;
+      }
+
+      let currentName = null;
+      let currentLines = [];
+
+      for (const line of subLines) {
+        if (isProcedureLine(line)) {
+          if (currentName) {
+            const content = currentLines.join("\n").trim();
+            if (content.length >= 80) chunks.push({ category: currentName, content });
+          }
+          currentName = line.trim().replace(/\*\*/g, "");
+          currentLines = [subHeader, line];
+        } else if (currentName) {
+          currentLines.push(line);
+        }
+      }
+
+      if (currentName) {
+        const content = currentLines.join("\n").trim();
+        if (content.length >= 80) chunks.push({ category: currentName, content });
+      }
+    }
+  }
+
+  return chunks;
 }
 
 // ── 3. Generar embedding con OpenAI text-embedding-3-small ───────────────────
