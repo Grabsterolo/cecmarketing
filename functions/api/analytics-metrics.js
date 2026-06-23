@@ -24,9 +24,8 @@ export async function onRequestGet({ env }) {
   const today = new Date();
   const firstDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
 
-  const gaRes = await fetch(
-    `https://analyticsdata.googleapis.com/v1beta/properties/${GA_PROPERTY_ID}:runReport`,
-    {
+  const [gaRes, pagesRes] = await Promise.all([
+    fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${GA_PROPERTY_ID}:runReport`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${accessToken}`,
@@ -34,10 +33,7 @@ export async function onRequestGet({ env }) {
       },
       body: JSON.stringify({
         dateRanges: [{ startDate: firstDay, endDate: "today" }],
-        dimensions: [
-          { name: "country" },
-          { name: "sessionDefaultChannelGroup" },
-        ],
+        dimensions: [{ name: "country" }, { name: "sessionDefaultChannelGroup" }],
         metrics: [
           { name: "activeUsers" },
           { name: "sessions" },
@@ -48,10 +44,31 @@ export async function onRequestGet({ env }) {
         ],
         limit: 20,
       }),
-    }
-  );
+    }),
+    fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${GA_PROPERTY_ID}:runReport`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        dateRanges: [{ startDate: firstDay, endDate: "today" }],
+        dimensions: [
+          { name: "pageTitle" },
+          { name: "pagePath" },
+        ],
+        metrics: [
+          { name: "screenPageViews" },
+          { name: "activeUsers" },
+          { name: "averageSessionDuration" },
+        ],
+        orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+        limit: 10,
+      }),
+    }),
+  ]);
 
-  const gaData = await gaRes.json();
+  const [gaData, pagesData] = await Promise.all([gaRes.json(), pagesRes.json()]);
 
   if (gaData.error) {
     return new Response(JSON.stringify({ error: gaData.error.message }), {
@@ -91,7 +108,15 @@ export async function onRequestGet({ env }) {
     .sort((a, b) => b[1] - a[1])
     .map(([channel, sessions]) => ({ channel, sessions }));
 
-  return new Response(JSON.stringify({ totals, topCountries, channels }), {
+  const topPages = (pagesData.rows || []).map(row => ({
+    title: row.dimensionValues[0].value,
+    path: row.dimensionValues[1].value,
+    views: parseInt(row.metricValues[0].value || 0),
+    users: parseInt(row.metricValues[1].value || 0),
+    avgDuration: Math.round(parseFloat(row.metricValues[2].value || 0)),
+  }));
+
+  return new Response(JSON.stringify({ totals, topCountries, channels, topPages }), {
     status: 200,
     headers: {
       "content-type": "application/json",

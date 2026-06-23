@@ -152,6 +152,41 @@ export function AnalyticsSection() {
                 </tbody>
               </table>
             </div>
+            {/* Tabla páginas más visitadas */}
+            <p style={{ margin: "24px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+              Páginas más visitadas
+            </p>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...headStyle, textAlign: "left" }}>Página</th>
+                    <th style={{ ...headStyle, textAlign: "right" }}>Vistas</th>
+                    <th style={{ ...headStyle, textAlign: "right" }}>Usuarios</th>
+                    <th style={{ ...headStyle, textAlign: "right" }}>Tiempo promedio</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(analyticsData.topPages || []).map((p, i) => {
+                    const title = p.title.length > 40 ? p.title.substring(0, 40) + "..." : p.title;
+                    const duration = p.avgDuration >= 60
+                      ? `${Math.floor(p.avgDuration / 60)}m ${p.avgDuration % 60}s`
+                      : `${p.avgDuration}s`;
+                    return (
+                      <tr key={i} style={{ background: i % 2 === 0 ? COLORS.panel : COLORS.panelAlt }}>
+                        <td style={cellStyle}>
+                          <span style={{ fontWeight: 600, display: "block" }}>{title}</span>
+                          <span style={{ fontSize: 11, color: COLORS.textMuted }}>{p.path}</span>
+                        </td>
+                        <td style={{ ...cellStyle, textAlign: "right" }}>{p.views.toLocaleString()}</td>
+                        <td style={{ ...cellStyle, textAlign: "right" }}>{p.users.toLocaleString()}</td>
+                        <td style={{ ...cellStyle, textAlign: "right" }}>{duration}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </Card>
