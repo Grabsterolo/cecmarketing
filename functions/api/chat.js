@@ -1,8 +1,12 @@
 export async function onRequestPost({ request, env }) {
   const { system, knowledge_base, messages } = await request.json();
 
-  // 1. Generar embedding del último mensaje del usuario
-  const lastUserMessage = [...messages].reverse().find(m => m.role === "user")?.content ?? "";
+  // 1. Generar embedding combinando los últimos 2 mensajes del usuario (contexto multi-turno)
+  const searchQuery = messages
+    .filter(m => m.role === "user")
+    .slice(-2)
+    .map(m => m.content)
+    .join(" ");
   let chunks = [];
 
   try {
@@ -14,7 +18,7 @@ export async function onRequestPost({ request, env }) {
       },
       body: JSON.stringify({
         model: "text-embedding-3-small",
-        input: lastUserMessage,
+        input: searchQuery,
       }),
     });
 
@@ -63,7 +67,7 @@ export async function onRequestPost({ request, env }) {
   } else if (knowledge_base) {
     systemBlocks.push({
       type: "text",
-      text: "BASE DE CONOCIMIENTO:\n\n" + knowledge_base,
+      text: "INFORMACIÓN COMPLETA DEL CEC (usa solo lo relevante para la pregunta del paciente):\n\n" + knowledge_base,
     });
   }
 

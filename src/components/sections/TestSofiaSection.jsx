@@ -4,11 +4,6 @@ import { COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { supabase } from "../../lib/supabase.js";
 
-function buildSystemPrompt(systemPrompt, knowledgeBase) {
-  if (!knowledgeBase) return systemPrompt;
-  return `${systemPrompt}\n\n---\n\nBASE DE CONOCIMIENTO:\n\n${knowledgeBase}`;
-}
-
 function TypingIndicator() {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 12 }}>
