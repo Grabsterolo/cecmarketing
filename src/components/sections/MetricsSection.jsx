@@ -17,7 +17,7 @@ const headStyle = {
 };
 const tickStyle = { fontSize: 11, fontFamily: "'Manrope', sans-serif", fill: COLORS.textMuted };
 
-function Kpi({ label, value, sub }) {
+function Kpi({ label, value, sub, note }) {
   return (
     <div>
       <p style={{ margin: "0 0 4px", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
@@ -29,6 +29,11 @@ function Kpi({ label, value, sub }) {
       <p style={{ margin: "4px 0 0", fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
         {sub}
       </p>
+      {note && (
+        <p style={{ margin: "2px 0 0", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>
+          {note}
+        </p>
+      )}
     </div>
   );
 }
@@ -103,9 +108,16 @@ export function MetricsSection() {
     Leads: parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0),
   }));
 
-  const cplValue = metaData?.totals?.leads > 0
-    ? `$${parseFloat(metaData.totals.cpl).toFixed(2)}`
-    : "—";
+  const campanasConLeads = (metaData?.campaigns ?? []).filter(c =>
+    parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0) > 0
+  );
+  const cplReal = campanasConLeads.length > 0
+    ? (
+        campanasConLeads.reduce((sum, c) => sum + parseFloat(c.spend || 0), 0) /
+        campanasConLeads.reduce((sum, c) => sum + parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0), 0)
+      ).toFixed(2)
+    : 0;
+  const cplValue = campanasConLeads.length > 0 ? `$${cplReal}` : "—";
 
   const insight = metaData ? getMetaInsight(metaData.campaigns, metaData.totals) : null;
 
@@ -178,6 +190,7 @@ export function MetricsSection() {
                 label="Costo por lead"
                 value={cplValue}
                 sub="Promedio Meta Ads"
+                note="Solo campañas con leads"
               />
             </div>
 
@@ -209,6 +222,10 @@ export function MetricsSection() {
                 </tbody>
               </table>
             </div>
+
+            <p style={{ margin: "8px 0 0", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>
+              * Las campañas de alcance y tráfico no tienen como objetivo generar leads — su costo por lead no es comparable con campañas de conversión.
+            </p>
 
             {/* Gráfico gasto vs leads */}
             <p style={{ margin: "24px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
