@@ -52,7 +52,7 @@ Mismo flujo que tus otros proyectos: conectar este repo a Cloudflare Pages, conf
 ## Roadmap (orden de construcción)
 
 **Fase 1 — Frontend y editor de Sofía (este entregable)**
-Login, dashboard, sidebar, y la sección "Configurar a Sofía" ya funcionando contra Supabase. No depende de ningún acceso externo.
+Login, dashboard, sidebar, y la sección "Configurar a Sofía" ya funcionando contra Supabase. No depende de acceso externo.
 
 **Fase 2 — Conversaciones de Sofía**
 La sección ya está construida y lista para mostrar datos reales en cuanto el backend del webhook de WhatsApp empiece a escribir en la tabla `sofia_conversations`.
