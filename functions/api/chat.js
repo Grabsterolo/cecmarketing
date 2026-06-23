@@ -32,8 +32,8 @@ export async function onRequestPost({ request, env }) {
         },
         body: JSON.stringify({
           query_embedding: queryEmbedding,
-          match_count: 4,
-          match_threshold: 0.7,
+          match_count: 6,
+          match_threshold: 0.5,
         }),
       });
 
@@ -59,6 +59,11 @@ export async function onRequestPost({ request, env }) {
       type: "text",
       text: "BASE DE CONOCIMIENTO RELEVANTE PARA ESTA CONSULTA:\n\n" +
         chunks.map(c => c.content).join("\n\n---\n\n"),
+    });
+  } else if (knowledge_base) {
+    systemBlocks.push({
+      type: "text",
+      text: "BASE DE CONOCIMIENTO:\n\n" + knowledge_base,
     });
   }
 
