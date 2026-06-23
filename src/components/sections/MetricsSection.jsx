@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import { LayoutDashboard } from "lucide-react";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card, CardHeader } from "../ui/Card.jsx";
+import { PendingIntegrationCard } from "../ui/PendingIntegrationCard.jsx";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 
 const CHART_DATA = [
@@ -15,23 +17,10 @@ const CHART_DATA = [
   { mes: "Jun", Meta: 36, Google: 28 },
 ];
 
-const META_CAMPAIGNS = [
-  { nombre: "Rinoplastia junio",    gasto: "₡280,000", clics: 1420, leads: 22, cpp: "₡12,727", status: "activa" },
-  { nombre: "Liposucción verano",   gasto: "₡195,000", clics: 980,  leads: 15, cpp: "₡13,000", status: "activa" },
-  { nombre: "Lifting facial mayo",  gasto: "₡310,000", clics: 2100, leads: 31, cpp: "₡10,000", status: "pausada" },
-];
-
 const GOOGLE_CAMPAIGNS = [
-  { nombre: "Mamoplastia CR",         gasto: "₡220,000", clics: 890, leads: 18, cpp: "₡12,222", status: "activa" },
-  { nombre: "Bichectomía San José",   gasto: "₡130,000", clics: 640, leads: 9,  cpp: "₡14,444", status: "activa" },
-  { nombre: "Abdominoplastia",        gasto: "₡105,000", clics: 510, leads: 8,  cpp: "₡13,125", status: "pausada" },
-];
-
-const KPIS = [
-  { label: "Gasto total",           value: "₡1,240,000", sub: "Meta + Google · junio 2026" },
-  { label: "Leads generados",       value: "87",          sub: "Todos los canales · junio 2026" },
-  { label: "Costo por lead prom.",  value: "₡14,253",     sub: "Promedio ponderado" },
-  { label: "Mejor CPL",            value: "Meta Ads",     sub: "₡12,576 promedio de campañas" },
+  { nombre: "Mamoplastia CR",       gasto: "₡220,000", clics: 890, leads: 18, cpp: "₡12,222", status: "activa" },
+  { nombre: "Bichectomía San José", gasto: "₡130,000", clics: 640, leads: 9,  cpp: "₡14,444", status: "activa" },
+  { nombre: "Abdominoplastia",      gasto: "₡105,000", clics: 510, leads: 8,  cpp: "₡13,125", status: "pausada" },
 ];
 
 function KpiCard({ label, value, sub }) {
@@ -64,7 +53,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function CampaignTable({ campaigns, isMobile }) {
+function CampaignTable({ campaigns }) {
   const cellStyle = {
     padding: "11px 14px", fontSize: 13, fontFamily: "'Manrope', sans-serif",
     color: COLORS.text, borderBottom: `1px solid ${COLORS.border}`, whiteSpace: "nowrap",
@@ -89,7 +78,7 @@ function CampaignTable({ campaigns, isMobile }) {
             <tr key={i} style={{ background: i % 2 === 0 ? COLORS.panel : COLORS.panelAlt }}>
               <td style={{ ...cellStyle, fontWeight: 600 }}>{c.nombre}</td>
               <td style={{ ...cellStyle, textAlign: "right" }}>{c.gasto}</td>
-              <td style={{ ...cellStyle, textAlign: "right" }}>{c.clics.toLocaleString()}</td>
+              <td style={{ ...cellStyle, textAlign: "right" }}>{typeof c.clics === "number" ? c.clics.toLocaleString() : c.clics}</td>
               <td style={{ ...cellStyle, textAlign: "right", fontWeight: 700, color: COLORS.green }}>{c.leads}</td>
               <td style={{ ...cellStyle, textAlign: "right" }}>{c.cpp}</td>
               <td style={{ ...cellStyle, textAlign: "right" }}><StatusBadge status={c.status} /></td>
@@ -116,19 +105,63 @@ const tickStyle = { fontSize: 11, fontFamily: "'Manrope', sans-serif", fill: COL
 
 export function MetricsSection() {
   const isMobile = useIsMobile();
+  const [metaData, setMetaData] = useState(null);
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [metaError, setMetaError] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/meta-metrics")
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) setMetaError(data.error);
+        else setMetaData(data);
+      })
+      .catch(err => setMetaError(err.message))
+      .finally(() => setMetaLoading(false));
+  }, []);
+
+  // Mapear campañas de Meta a formato de tabla
+  const metaCampaigns = metaData?.campaigns.map(c => {
+    const leadAction = c.actions?.find(a => a.action_type === "lead");
+    const leads = leadAction ? parseInt(leadAction.value) : 0;
+    const spend = parseFloat(c.spend);
+    return {
+      nombre: c.campaign_name,
+      gasto: `$${spend.toLocaleString()}`,
+      clics: parseInt(c.clicks),
+      leads,
+      cpp: leads > 0 ? `$${(spend / leads).toFixed(2)}` : "N/A",
+      status: "activa",
+    };
+  }) ?? [];
+
+  // KPIs: reales si hay datos, mock si no
+  const kpis = metaData ? [
+    { label: "Gasto total (Meta)",      value: `$${metaData.totals.spend.toLocaleString()}`,          sub: "Meta Ads · mes actual" },
+    { label: "Leads generados",         value: String(metaData.totals.leads),                          sub: "Meta Ads · mes actual" },
+    { label: "Costo por lead",          value: `$${metaData.totals.cpl}`,                              sub: "Promedio Meta" },
+    { label: "Impresiones",             value: metaData.totals.impressions.toLocaleString(),            sub: "Alcance pagado" },
+  ] : [
+    { label: "Gasto total",             value: "₡1,240,000",  sub: "Meta + Google · junio 2026" },
+    { label: "Leads generados",         value: "87",           sub: "Todos los canales · junio 2026" },
+    { label: "Costo por lead prom.",    value: "₡14,253",      sub: "Promedio ponderado" },
+    { label: "Mejor CPL",              value: "Meta Ads",      sub: "₡12,576 promedio de campañas" },
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-      {/* Banner demo */}
-      <div style={{
-        padding: "13px 18px", borderRadius: 8,
-        background: COLORS.panelAlt, borderLeft: `3px solid ${COLORS.gold}`,
-      }}>
-        <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
-          <strong style={{ color: COLORS.green }}>Modo demo</strong> — Los datos mostrados son de ejemplo. Las métricas reales aparecerán aquí una vez conectadas las cuentas publicitarias.
-        </p>
-      </div>
+      {/* Banner: demo si no hay datos, conectado si los hay */}
+      {!metaData && (
+        <div style={{
+          padding: "13px 18px", borderRadius: 8,
+          background: COLORS.panelAlt, borderLeft: `3px solid ${COLORS.gold}`,
+        }}>
+          <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
+            <strong style={{ color: COLORS.green }}>Modo demo</strong> — Los datos mostrados son de ejemplo. Las métricas reales aparecerán aquí una vez conectadas las cuentas publicitarias.
+          </p>
+        </div>
+      )}
 
       {/* KPIs */}
       <div style={{
@@ -136,7 +169,7 @@ export function MetricsSection() {
         gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)",
         gap: 16,
       }}>
-        {KPIS.map(k => <KpiCard key={k.label} {...k} />)}
+        {kpis.map(k => <KpiCard key={k.label} {...k} />)}
       </div>
 
       {/* Gráfico barras */}
@@ -155,24 +188,44 @@ export function MetricsSection() {
               }}
               cursor={{ fill: COLORS.panelAlt }}
             />
-            <Legend
-              wrapperStyle={{ fontFamily: "'Manrope', sans-serif", fontSize: 12, paddingTop: 12 }}
-            />
+            <Legend wrapperStyle={{ fontFamily: "'Manrope', sans-serif", fontSize: 12, paddingTop: 12 }} />
             <Bar dataKey="Meta"   fill={SOURCE_COLORS.meta}   radius={[4, 4, 0, 0]} />
             <Bar dataKey="Google" fill={SOURCE_COLORS.google} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
 
-      {/* Tablas de campañas */}
+      {/* Tabla Meta */}
       <Card>
         <SourceHeader label="Meta Ads" color={SOURCE_COLORS.meta} />
-        <CampaignTable campaigns={META_CAMPAIGNS} isMobile={isMobile} />
+        {metaLoading && (
+          <p style={{ fontSize: 14, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", textAlign: "center", margin: "24px 0" }}>
+            Cargando métricas de Meta...
+          </p>
+        )}
+        {!metaLoading && metaError && (
+          <PendingIntegrationCard
+            icon={LayoutDashboard}
+            title="No se pudo conectar con Meta Ads"
+            description={metaError}
+          />
+        )}
+        {!metaLoading && !metaError && metaData && (
+          <CampaignTable campaigns={metaCampaigns} />
+        )}
+        {!metaLoading && !metaError && !metaData && (
+          <CampaignTable campaigns={[
+            { nombre: "Rinoplastia junio",   gasto: "₡280,000", clics: 1420, leads: 22, cpp: "₡12,727", status: "activa" },
+            { nombre: "Liposucción verano",  gasto: "₡195,000", clics: 980,  leads: 15, cpp: "₡13,000", status: "activa" },
+            { nombre: "Lifting facial mayo", gasto: "₡310,000", clics: 2100, leads: 31, cpp: "₡10,000", status: "pausada" },
+          ]} />
+        )}
       </Card>
 
+      {/* Tabla Google — mock por ahora */}
       <Card>
         <SourceHeader label="Google Ads" color={SOURCE_COLORS.google} />
-        <CampaignTable campaigns={GOOGLE_CAMPAIGNS} isMobile={isMobile} />
+        <CampaignTable campaigns={GOOGLE_CAMPAIGNS} />
       </Card>
 
     </div>
