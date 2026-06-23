@@ -1,21 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { LayoutDashboard, MessageCircle, Sparkles } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 
-const KPIS = [
-  { label: "Gasto total",      value: "₡1,240,000", sub: "Meta + Google este mes",          prominent: true },
-  { label: "Leads generados",  value: "87",          sub: "Personas que dejaron sus datos",  prominent: false },
-  { label: "Costo por lead",   value: "₡14,253",     sub: "Promedio entre plataformas",      prominent: false },
-  { label: "Mejor plataforma", value: "Meta Ads",    sub: "Menor costo por lead",            prominent: false },
-];
-
 const NAV_BADGES = {
-  metricas:        { label: "2 pendientes",  bg: "rgba(234,67,53,0.1)",    color: "#EA4335" },
-  sofia:           { label: "Conectado",     bg: "rgba(74,124,92,0.15)",   color: "#4A7C5C" },
-  recomendaciones: { label: "Próximamente",  bg: COLORS.panelAlt,          color: COLORS.textMuted },
+  metricas:        { label: "Meta conectado", bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
+  sofia:           { label: "Conectado",      bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
+  recomendaciones: { label: "Próximamente",   bg: COLORS.panelAlt,         color: COLORS.textMuted },
 };
 
 function KpiCard({ label, value, sub, prominent }) {
@@ -76,6 +69,22 @@ function SourceStatusRow({ source }) {
 
 export function DashboardHome({ profile, setActive }) {
   const isMobile = useIsMobile();
+  const [metaData, setMetaData] = useState(null);
+  const [metaLoading, setMetaLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/meta-metrics")
+      .then(r => r.json())
+      .then(data => { if (!data.error) setMetaData(data); })
+      .catch(() => {})
+      .finally(() => setMetaLoading(false));
+  }, []);
+
+  const t = metaData?.totals;
+  const spend = metaLoading ? "..." : `$${parseFloat(t?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+  const impressions = metaLoading ? "..." : `${parseInt(t?.impressions || 0).toLocaleString()}`;
+  const clicks = metaLoading ? "..." : `${parseInt(t?.clicks || 0).toLocaleString()}`;
+  const leads = metaLoading ? "..." : `${t?.leads || 0}`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -83,29 +92,27 @@ export function DashboardHome({ profile, setActive }) {
       {/* Tarjetas de navegación */}
       {isMobile ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Meta Ads y Google Ads / Analytics en un solo lugar."       onClick={() => setActive?.("metricas")} />
-          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."         onClick={() => setActive?.("sofia")} />
-          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones."    onClick={() => setActive?.("recomendaciones")} />
+          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Meta Ads y Google Ads / Analytics en un solo lugar."    onClick={() => setActive?.("metricas")} />
+          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."      onClick={() => setActive?.("sofia")} />
+          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones." onClick={() => setActive?.("recomendaciones")} />
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Meta Ads y Google Ads / Analytics en un solo lugar."       onClick={() => setActive?.("metricas")} />
-          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."         onClick={() => setActive?.("sofia")} />
-          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones."    onClick={() => setActive?.("recomendaciones")} />
+          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Meta Ads y Google Ads / Analytics en un solo lugar."    onClick={() => setActive?.("metricas")} />
+          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."      onClick={() => setActive?.("sofia")} />
+          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones." onClick={() => setActive?.("recomendaciones")} />
         </div>
       )}
 
       {/* Separador */}
       <div style={{ height: 1, background: COLORS.border, margin: "4px 0 12px" }} />
 
-      {/* KPIs */}
-      <div>
-        <p style={{ margin: "0 0 8px", fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", fontStyle: "italic", textAlign: "center" }}>
-          Datos de ejemplo · Las métricas reales aparecerán cuando se conecten Meta y Google Ads
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 16 }}>
-          {KPIS.map(k => <KpiCard key={k.label} {...k} />)}
-        </div>
+      {/* KPIs — datos reales de Meta */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 16, marginBottom: 4 }}>
+        <KpiCard label="Gasto Meta Ads"  value={spend}       sub="Este mes"              prominent={true} />
+        <KpiCard label="Impresiones"     value={impressions} sub="Alcance total"         prominent={false} />
+        <KpiCard label="Clics"           value={clicks}      sub="Al sitio web"          prominent={false} />
+        <KpiCard label="Leads"           value={leads}       sub="Contactos generados"   prominent={false} />
       </div>
 
       {/* Estado de fuentes */}
@@ -117,7 +124,7 @@ export function DashboardHome({ profile, setActive }) {
           <SourceStatusRow key={source.key} source={source} />
         ))}
         <p style={{ fontSize: 12, color: COLORS.textMuted, margin: "10px 0 0", fontFamily: "'Manrope', sans-serif" }}>
-          Meta y Google se conectan cuando llegue el acceso de la agencia.
+          Meta Ads conectado · Google Ads en proceso de acceso.
         </p>
       </Card>
 

@@ -18,7 +18,7 @@ export const NAV_ITEMS = [
 // Fuentes de datos que el dashboard puede mostrar. "connected: false" hasta
 // que se complete la Fase 3 (acceso a Meta y Google ya pedido a CEC).
 export const DATA_SOURCES = [
-  { key: "meta", label: "Meta Ads", connected: false },
+  { key: "meta", label: "Meta Ads", connected: true },
   { key: "google", label: "Google Ads / Analytics", connected: false },
   { key: "sofia", label: "Conversaciones de Sofía", connected: true },
 ];
