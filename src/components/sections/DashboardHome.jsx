@@ -12,9 +12,9 @@ const NAV_BADGES = {
   recomendaciones: { label: "Próximamente",   bg: COLORS.panelAlt,         color: COLORS.textMuted },
 };
 
-function KpiCard({ label, value, sub, prominent }) {
+function KpiCard({ label, value, sub, prominent, borderColor }) {
   return (
-    <Card style={{ borderTop: `3px solid ${COLORS.gold}` }}>
+    <Card style={{ borderTop: `3px solid ${borderColor || COLORS.gold}` }}>
       <p style={{ margin: "0 0 4px", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
         {label}
       </p>
@@ -58,11 +58,11 @@ function SourceStatusRow({ source }) {
       <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 600, fontFamily: "'Manrope', sans-serif" }}>{source.label}</span>
       <span style={{
         fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
-        background: source.connected ? "rgba(127,169,140,0.15)" : "rgba(31,74,64,0.08)",
-        color: source.connected ? "#4A7C5C" : COLORS.textMuted,
+        background: source.connected ? "rgba(127,169,140,0.15)" : "rgba(220,38,38,0.08)",
+        color: source.connected ? "#4A7C5C" : "#dc2626",
         fontFamily: "'Manrope', sans-serif",
       }}>
-        {source.connected ? "Conectado" : "Pendiente"}
+        {source.connected ? "Conectado" : "● Pendiente"}
       </span>
     </div>
   );
@@ -72,6 +72,8 @@ export function DashboardHome({ profile, setActive }) {
   const isMobile = useIsMobile();
   const [metaData, setMetaData] = useState(null);
   const [metaLoading, setMetaLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -79,6 +81,14 @@ export function DashboardHome({ profile, setActive }) {
       .then(data => { if (!data.error) setMetaData(data); })
       .catch(() => {})
       .finally(() => setMetaLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/analytics-metrics")
+      .then(r => r.json())
+      .then(data => { if (!data.error) setAnalyticsData(data); })
+      .catch(() => {})
+      .finally(() => setAnalyticsLoading(false));
   }, []);
 
   const t = metaData?.totals;
@@ -118,6 +128,42 @@ export function DashboardHome({ profile, setActive }) {
         <KpiCard label="Leads"           value={leads}       sub="Contactos generados"   prominent={false} />
       </div>
 
+      {/* KPIs — Google Analytics */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EA4335", flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+            Sitio Web — cec.cr
+          </span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 16 }}>
+          <KpiCard
+            label="USUARIOS ACTIVOS"
+            value={analyticsLoading ? "..." : analyticsData?.totals?.users?.toLocaleString() || "0"}
+            sub="Este mes en cec.cr"
+            borderColor="#EA4335"
+          />
+          <KpiCard
+            label="SESIONES"
+            value={analyticsLoading ? "..." : analyticsData?.totals?.sessions?.toLocaleString() || "0"}
+            sub="Visitas totales"
+            borderColor="#EA4335"
+          />
+          <KpiCard
+            label="EVENTOS CLAVE"
+            value={analyticsLoading ? "..." : analyticsData?.totals?.keyEvents?.toLocaleString() || "0"}
+            sub="Consultas y conversiones"
+            borderColor="#EA4335"
+          />
+          <KpiCard
+            label="PAÍS PRINCIPAL"
+            value={analyticsLoading ? "..." : analyticsData?.topCountries?.[0]?.country || "—"}
+            sub={analyticsLoading ? "" : `${analyticsData?.topCountries?.[0]?.users?.toLocaleString() || 0} usuarios`}
+            borderColor="#EA4335"
+          />
+        </div>
+      </div>
+
       {/* Estado de fuentes */}
       <Card style={{ padding: "16px 20px" }}>
         <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
@@ -127,7 +173,7 @@ export function DashboardHome({ profile, setActive }) {
           <SourceStatusRow key={source.key} source={source} />
         ))}
         <p style={{ fontSize: 12, color: COLORS.textMuted, margin: "10px 0 0", fontFamily: "'Manrope', sans-serif" }}>
-          Meta Ads conectado · Google Ads en proceso de acceso.
+          Google Ads en proceso · Meta Ads y Google Analytics conectados.
         </p>
       </Card>
 
