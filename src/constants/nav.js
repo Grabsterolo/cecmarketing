@@ -1,5 +1,5 @@
 import {
-  Home, LayoutDashboard, MessageCircle, Sparkles, Settings2, FlaskConical,
+  Home, LayoutDashboard, BarChart2, MessageCircle, Sparkles, Settings2, FlaskConical,
 } from "lucide-react";
 
 export const ROTATING_WORDS = ["campañas", "conversaciones", "métricas", "recomendaciones", "tu marca"];
@@ -9,6 +9,7 @@ export const ROTATING_WORDS = ["campañas", "conversaciones", "métricas", "reco
 export const NAV_ITEMS = [
   { key: "inicio", label: "Inicio", icon: Home },
   { key: "metricas", label: "Métricas", icon: LayoutDashboard },
+  { key: "analytics", label: "Sitio Web", icon: BarChart2 },
   { key: "sofia", label: "Conversaciones de Sofía", icon: MessageCircle },
   { key: "recomendaciones", label: "Recomendaciones", icon: Sparkles },
   { key: "configurar-sofia", label: "Configurar a Sofía", icon: Settings2 },
@@ -19,6 +20,7 @@ export const NAV_ITEMS = [
 // que se complete la Fase 3 (acceso a Meta y Google ya pedido a CEC).
 export const DATA_SOURCES = [
   { key: "meta", label: "Meta Ads", connected: true },
-  { key: "google", label: "Google Ads / Analytics", connected: false },
+  { key: "analytics", label: "Google Analytics", connected: true },
+  { key: "google", label: "Google Ads", connected: false },
   { key: "sofia", label: "Conversaciones de Sofía", connected: true },
 ];

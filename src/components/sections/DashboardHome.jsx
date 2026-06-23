@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { LayoutDashboard, MessageCircle, Sparkles } from "lucide-react";
+import { LayoutDashboard, BarChart2, MessageCircle, Sparkles } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
@@ -7,6 +7,7 @@ import { useIsMobile } from "../../hooks/useIsMobile.js";
 
 const NAV_BADGES = {
   metricas:        { label: "Meta conectado", bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
+  analytics:       { label: "Conectado",      bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
   sofia:           { label: "Conectado",      bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
   recomendaciones: { label: "Próximamente",   bg: COLORS.panelAlt,         color: COLORS.textMuted },
 };
@@ -92,15 +93,17 @@ export function DashboardHome({ profile, setActive }) {
       {/* Tarjetas de navegación */}
       {isMobile ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Meta Ads y Google Ads / Analytics en un solo lugar."    onClick={() => setActive?.("metricas")} />
-          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."      onClick={() => setActive?.("sofia")} />
-          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones." onClick={() => setActive?.("recomendaciones")} />
+          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Campañas de Meta Ads en un solo lugar."                   onClick={() => setActive?.("metricas")} />
+          <NavCard icon={BarChart2}       title="Sitio Web"              navKey="analytics"       description="Tráfico, usuarios y comportamiento en cec.cr."            onClick={() => setActive?.("analytics")} />
+          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."       onClick={() => setActive?.("sofia")} />
+          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones."  onClick={() => setActive?.("recomendaciones")} />
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
-          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Meta Ads y Google Ads / Analytics en un solo lugar."    onClick={() => setActive?.("metricas")} />
-          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."      onClick={() => setActive?.("sofia")} />
-          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones." onClick={() => setActive?.("recomendaciones")} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16 }}>
+          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Campañas de Meta Ads en un solo lugar."                   onClick={() => setActive?.("metricas")} />
+          <NavCard icon={BarChart2}       title="Sitio Web"              navKey="analytics"       description="Tráfico, usuarios y comportamiento en cec.cr."            onClick={() => setActive?.("analytics")} />
+          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."       onClick={() => setActive?.("sofia")} />
+          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones."  onClick={() => setActive?.("recomendaciones")} />
         </div>
       )}
 

@@ -10,10 +10,12 @@ import { SofiaConversationsSection } from "./sections/SofiaConversationsSection.
 import { RecommendationsSection } from "./sections/RecommendationsSection.jsx";
 import { ConfigureSofiaSection } from "./sections/ConfigureSofiaSection.jsx";
 import { TestSofiaSection } from "./sections/TestSofiaSection.jsx";
+import { AnalyticsSection } from "./sections/AnalyticsSection.jsx";
 
 const SECTION_TITLES = {
   inicio: "Inicio",
   metricas: "Métricas",
+  analytics: "Sitio Web — cec.cr",
   sofia: "Conversaciones de Sofía",
   recomendaciones: "Recomendaciones",
   "configurar-sofia": "Configurar a Sofía",
@@ -67,6 +69,7 @@ export function Dashboard({ onLogout, profile }) {
     switch (displayActive) {
       case "inicio": return <DashboardHome profile={profile} setActive={navigate} />;
       case "metricas": return <MetricsSection />;
+      case "analytics": return <AnalyticsSection />;
       case "sofia": return <SofiaConversationsSection />;
       case "recomendaciones": return <RecommendationsSection />;
       case "configurar-sofia": return <ConfigureSofiaSection />;
