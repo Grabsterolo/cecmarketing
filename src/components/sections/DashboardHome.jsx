@@ -17,7 +17,7 @@ function KpiCard({ label, value, sub, prominent }) {
       <p style={{ margin: "0 0 4px", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
         {label}
       </p>
-      <p style={{ margin: 0, fontSize: prominent ? 42 : 30, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green, lineHeight: 1.1 }}>
+      <p style={{ margin: 0, fontSize: prominent ? 42 : 30, fontFamily: "'Manrope', sans-serif", fontWeight: 700, color: COLORS.green, lineHeight: 1.1 }}>
         {value}
       </p>
       <p style={{ margin: "4px 0 0", fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
