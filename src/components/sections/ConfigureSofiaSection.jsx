@@ -48,8 +48,7 @@ export function ConfigureSofiaSection() {
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
   const [error, setError] = useState(null);
-  const [reindexing, setReindexing] = useState(false);
-  const [reindexResult, setReindexResult] = useState(null);
+  const [showReindexInfo, setShowReindexInfo] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -79,25 +78,6 @@ export function ConfigureSofiaSection() {
   function handleChange(fieldKey, value) {
     if (fieldKey === "system_prompt") setSystemPrompt(value);
     else setKnowledge(value);
-  }
-
-  async function handleReindex() {
-    setReindexing(true);
-    setReindexResult(null);
-    try {
-      const res = await fetch("/api/reindex", { method: "POST" });
-      const data = await res.json();
-      if (data.error) {
-        setReindexResult({ ok: false, message: data.error });
-      } else {
-        setReindexResult({ ok: true, message: `✓ ${data.chunks} fragmentos indexados` });
-        setTimeout(() => setReindexResult(null), 3000);
-      }
-    } catch {
-      setReindexResult({ ok: false, message: "Error de conexión al re-indexar." });
-    } finally {
-      setReindexing(false);
-    }
   }
 
   async function handleSave(fieldKey) {
@@ -169,33 +149,42 @@ export function ConfigureSofiaSection() {
             <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "0 0 14px", lineHeight: 1.6 }}>
               Después de guardar cambios en la base de conocimiento, re-indexa para que Sofía pueda encontrar la información relevante mediante búsqueda semántica.
             </p>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <button
-                onClick={handleReindex}
-                disabled={reindexing}
-                style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  background: reindexing ? COLORS.greenSoft : COLORS.green,
-                  border: "none", borderRadius: 8, padding: "11px 20px",
-                  color: "#fff", fontSize: 14, fontWeight: 700,
-                  cursor: reindexing ? "not-allowed" : "pointer",
-                  fontFamily: "'Manrope', sans-serif",
-                  boxShadow: "0 4px 14px rgba(31,74,64,0.3)",
-                  opacity: reindexing ? 0.75 : 1,
-                }}
-              >
-                <Zap size={15} />
-                {reindexing ? "Re-indexando..." : "Re-indexar para Sofía"}
-              </button>
-              {reindexResult && (
-                <p style={{
-                  fontSize: 13, fontWeight: 600, margin: 0,
-                  color: reindexResult.ok ? "#2C6356" : "#e07070",
-                }}>
-                  {reindexResult.message}
+            <button
+              onClick={() => setShowReindexInfo(v => !v)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: COLORS.green, border: "none", borderRadius: 8,
+                padding: "11px 20px", color: "#fff", fontSize: 14, fontWeight: 700,
+                cursor: "pointer", fontFamily: "'Manrope', sans-serif",
+                boxShadow: "0 4px 14px rgba(31,74,64,0.3)",
+              }}
+            >
+              <Zap size={15} />
+              Re-indexar para Sofía
+            </button>
+            {showReindexInfo && (
+              <div style={{
+                marginTop: 16, padding: "14px 16px", borderRadius: 8,
+                background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`,
+              }}>
+                <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "0 0 10px", lineHeight: 1.6 }}>
+                  Para re-indexar, corre este comando en la terminal del proyecto:
                 </p>
-              )}
-            </div>
+                <code style={{
+                  display: "block", background: "#1a2e28", color: "#7FFFD4",
+                  padding: "10px 14px", borderRadius: 6, fontSize: 13,
+                  fontFamily: "'SF Mono', 'Monaco', monospace", marginBottom: 12,
+                }}>
+                  npm run index-knowledge
+                </code>
+                <p style={{ fontSize: 12.5, color: COLORS.textMuted, margin: 0, lineHeight: 1.6 }}>
+                  Necesitas tener configurado <code style={{ fontSize: 12 }}>.env.local</code> con{" "}
+                  <code style={{ fontSize: 12 }}>VITE_SUPABASE_URL</code>,{" "}
+                  <code style={{ fontSize: 12 }}>SUPABASE_SERVICE_ROLE_KEY</code> y{" "}
+                  <code style={{ fontSize: 12 }}>OPENAI_API_KEY</code>.
+                </p>
+              </div>
+            )}
           </Card>
         </>
       )}
