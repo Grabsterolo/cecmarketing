@@ -4,6 +4,7 @@ export async function onRequestGet({ env }) {
   let credentials;
   try {
     credentials = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
+    credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
   } catch {
     return new Response(JSON.stringify({ error: "Credenciales inválidas" }), {
       status: 500, headers: { "content-type": "application/json" },
