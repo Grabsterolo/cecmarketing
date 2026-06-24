@@ -28,6 +28,17 @@ function KpiCard({ label, value, sub, prominent, borderColor }) {
   );
 }
 
+function SourceLabel({ color, label }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+      <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
 function NavCard({ icon: Icon, title, description, navKey, onClick }) {
   const badge = NAV_BADGES[navKey];
   return (
@@ -74,6 +85,8 @@ export function DashboardHome({ profile, setActive }) {
   const [metaLoading, setMetaLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [googleData, setGoogleData] = useState(null);
+  const [googleLoading, setGoogleLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -91,11 +104,27 @@ export function DashboardHome({ profile, setActive }) {
       .finally(() => setAnalyticsLoading(false));
   }, []);
 
+  useEffect(() => {
+    fetch("/api/google-ads-metrics")
+      .then(r => r.json())
+      .then(data => { if (!data.error) setGoogleData(data); })
+      .catch(() => {})
+      .finally(() => setGoogleLoading(false));
+  }, []);
+
   const t = metaData?.totals;
   const spend = metaLoading ? "..." : `$${parseFloat(t?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-  const impressions = metaLoading ? "..." : `${parseInt(t?.impressions || 0).toLocaleString()}`;
-  const clicks = metaLoading ? "..." : `${parseInt(t?.clicks || 0).toLocaleString()}`;
-  const leads = metaLoading ? "..." : `${t?.leads || 0}`;
+  const metaLeads = metaLoading ? "..." : `${t?.leads || 0}`;
+  const metaCpl = metaLoading ? "..." : (t?.leads > 0 ? `$${(parseFloat(t?.spend || 0) / parseInt(t?.leads || 1)).toFixed(2)}` : "—");
+
+  const bestCampaign = metaData?.campaigns
+    ?.filter(c => parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0) > 0)
+    ?.sort((a, b) => {
+      const cplA = parseFloat(a.spend) / parseInt(a.actions?.find(x => x.action_type === "lead")?.value || 1);
+      const cplB = parseFloat(b.spend) / parseInt(b.actions?.find(x => x.action_type === "lead")?.value || 1);
+      return cplA - cplB;
+    })?.[0];
+  const bestName = metaLoading ? "..." : (bestCampaign?.campaign_name?.substring(0, 18) || "—");
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -120,22 +149,22 @@ export function DashboardHome({ profile, setActive }) {
       {/* Separador */}
       <div style={{ height: 1, background: COLORS.border, margin: "4px 0 12px" }} />
 
-      {/* KPIs — datos reales de Meta */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 16, marginBottom: 4 }}>
-        <KpiCard label="Gasto Meta Ads"  value={spend}       sub="Este mes"              prominent={true} />
-        <KpiCard label="Impresiones"     value={impressions} sub="Alcance total"         prominent={false} />
-        <KpiCard label="Clics"           value={clicks}      sub="Al sitio web"          prominent={false} />
-        <KpiCard label="Leads"           value={leads}       sub="Contactos generados"   prominent={false} />
+      {/* KPIs — Meta Ads */}
+      <div>
+        <SourceLabel color="#1877F2" label="Meta Ads" />
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 16 }}>
+          <KpiCard label="GASTO META ADS"   value={spend}     sub="Este mes"                prominent={true}  borderColor="#1877F2" />
+          <KpiCard label="LEADS"            value={metaLeads} sub="Contactos generados"     prominent={false} borderColor="#1877F2" />
+          <KpiCard label="COSTO POR LEAD"   value={metaCpl}   sub="Solo campañas con leads" prominent={false} borderColor="#1877F2" />
+          <KpiCard label="MEJOR CAMPAÑA"    value={bestName}  sub="Menor costo por lead"    prominent={false} borderColor="#1877F2" />
+        </div>
       </div>
+
+      <div style={{ height: 1, background: COLORS.border, margin: "4px 0 8px" }} />
 
       {/* KPIs — Google Analytics */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EA4335", flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-            Sitio Web — cec.cr
-          </span>
-        </div>
+        <SourceLabel color="#EA4335" label="Sitio Web — cec.cr" />
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 16 }}>
           <KpiCard
             label="USUARIOS ACTIVOS"
@@ -160,6 +189,39 @@ export function DashboardHome({ profile, setActive }) {
             value={analyticsLoading ? "..." : analyticsData?.topCountries?.[0]?.country || "—"}
             sub={analyticsLoading ? "" : `${analyticsData?.topCountries?.[0]?.users?.toLocaleString() || 0} usuarios`}
             borderColor="#EA4335"
+          />
+        </div>
+      </div>
+
+      <div style={{ height: 1, background: COLORS.border, margin: "4px 0 8px" }} />
+
+      {/* KPIs — Google Ads */}
+      <div>
+        <SourceLabel color="#4285F4" label="Google Ads" />
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 16 }}>
+          <KpiCard
+            label="GASTO GOOGLE"
+            value={googleLoading ? "..." : "$" + parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            sub="Este mes"
+            borderColor="#4285F4"
+          />
+          <KpiCard
+            label="CLICS"
+            value={googleLoading ? "..." : parseInt(googleData?.totals?.clicks || 0).toLocaleString()}
+            sub="Al sitio web"
+            borderColor="#4285F4"
+          />
+          <KpiCard
+            label="CONVERSIONES"
+            value={googleLoading ? "..." : `${Math.round(googleData?.totals?.conversions || 0)}`}
+            sub="Acciones completadas"
+            borderColor="#4285F4"
+          />
+          <KpiCard
+            label="COSTO / CONV."
+            value={googleLoading ? "..." : "$" + parseFloat(googleData?.totals?.costPerConv || 0).toFixed(2)}
+            sub="Promedio Google Ads"
+            borderColor="#4285F4"
           />
         </div>
       </div>
