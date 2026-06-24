@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { LayoutDashboard, BarChart2, MessageCircle, Sparkles, TrendingUp } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
-
-const NAV_BADGES = {
-  metricas:        { label: "Meta conectado", bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
-  analytics:       { label: "Conectado",      bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
-  sofia:           { label: "Conectado",      bg: "rgba(74,124,92,0.15)",  color: "#4A7C5C" },
-  recomendaciones: { label: "Próximamente",   bg: COLORS.panelAlt,         color: COLORS.textMuted },
-};
 
 const SOURCE_DOT_COLORS = {
   meta:      SOURCE_COLORS.meta,
@@ -18,45 +12,6 @@ const SOURCE_DOT_COLORS = {
   analytics: "#EA4335",
   sofia:     SOURCE_COLORS.sofia,
 };
-
-function NavCard({ icon: Icon, title, stat, statLabel, navKey, onClick, hovered, onMouseEnter, onMouseLeave }) {
-  const badge = NAV_BADGES[navKey];
-  const isHovered = hovered === navKey;
-  return (
-    <Card
-      style={{
-        cursor: "pointer",
-        position: "relative",
-        transition: "transform 0.15s, box-shadow 0.15s",
-        transform: isHovered ? "translateY(-2px)" : "translateY(0)",
-        boxShadow: isHovered ? "0 6px 20px rgba(31,74,64,0.12)" : "0 1px 6px rgba(31,74,64,0.06)",
-      }}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      {badge && (
-        <span style={{
-          position: "absolute", top: 12, right: 12,
-          fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20,
-          background: badge.bg, color: badge.color, fontFamily: "'Manrope', sans-serif",
-        }}>
-          {badge.label}
-        </span>
-      )}
-      <Icon size={18} color={COLORS.gold} />
-      <p style={{ margin: "10px 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1 }}>
-        {stat}
-      </p>
-      <p style={{ margin: "0 0 6px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        {statLabel}
-      </p>
-      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-        {title} →
-      </p>
-    </Card>
-  );
-}
 
 function ActiveBadge({ active }) {
   return (
@@ -79,7 +34,6 @@ export function DashboardHome({ profile, setActive }) {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [googleData, setGoogleData] = useState(null);
   const [googleLoading, setGoogleLoading] = useState(true);
-  const [hovered, setHovered] = useState(null);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -121,18 +75,62 @@ export function DashboardHome({ profile, setActive }) {
     ?.filter(c => c.conversions > 0 && c.costPerConv > 0)
     ?.sort((a, b) => a.costPerConv - b.costPerConv)?.[0];
 
+  const metaPct = metaData && googleData
+    ? Math.round((parseFloat(metaData.totals.spend) /
+        (parseFloat(metaData.totals.spend) + parseFloat(googleData.totals.cost))) * 100)
+    : null;
+
+  const gastoData = [
+    { nombre: "Meta Ads",    gasto: parseFloat(metaData?.totals?.spend || 0),  color: "#1877F2" },
+    { nombre: "Google Ads",  gasto: parseFloat(googleData?.totals?.cost || 0),  color: "#4285F4" },
+  ];
+
+  const pasos = [
+    {
+      color: "#1877F2",
+      label: "INVERSIÓN PUBLICITARIA",
+      numero: (metaLoading || googleLoading)
+        ? "..."
+        : `$${(parseFloat(metaData?.totals?.spend || 0) + parseFloat(googleData?.totals?.cost || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      desc: "Meta Ads + Google Ads este mes",
+      barra: 100,
+    },
+    {
+      color: "#7FA98C",
+      label: "IMPRESIONES",
+      numero: metaLoading ? "..." : `${parseInt(metaData?.totals?.impressions || 0).toLocaleString()}`,
+      desc: "Personas que vieron los anuncios",
+      barra: 85,
+    },
+    {
+      color: COLORS.gold,
+      label: "LEADS GENERADOS",
+      numero: metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`,
+      desc: "Contactos que dejaron sus datos",
+      barra: 60,
+    },
+    {
+      color: COLORS.border,
+      label: "CONVERSACIONES SOFÍA",
+      numero: "—",
+      desc: "Disponible cuando Sofía esté en WhatsApp",
+      barra: 0,
+      muted: true,
+    },
+  ];
+
   const sourceRowStyle = {
     display: "grid",
     gridTemplateColumns: "130px 1fr 1fr 1fr 80px",
     alignItems: "center",
-    padding: "16px 0",
+    padding: "12px 0",
     borderBottom: `1px solid ${COLORS.border}`,
   };
 
   const metricCell = (label, value) => (
     <div>
       <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>{label}</p>
-      <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>{value}</p>
+      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>{value}</p>
     </div>
   );
 
@@ -186,58 +184,57 @@ export function DashboardHome({ profile, setActive }) {
         </div>
       </Card>
 
-      {/* SECCIÓN 2 — Tabla de fuentes + sidebar */}
+      {/* SECCIÓN 2 — Embudo + sidebar */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 16 }}>
 
-        {/* Columna izquierda — Tabla de fuentes */}
+        {/* Columna izquierda — Embudo */}
         <Card>
-          <p style={{ margin: "0 0 16px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-            Rendimiento por fuente
+          <p style={{ margin: "0 0 20px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            El embudo de este mes
           </p>
 
-          {/* Meta Ads */}
-          <div style={sourceRowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: SOURCE_COLORS.meta, flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Meta Ads</span>
+          {pasos.map((paso, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "flex-start", gap: 16,
+              padding: "14px 0",
+              borderBottom: i < pasos.length - 1 ? `1px solid ${COLORS.border}` : "none",
+            }}>
+              <div style={{
+                width: 3, alignSelf: "stretch", borderRadius: 2,
+                background: paso.color, flexShrink: 0, minHeight: 40,
+              }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: "0 0 2px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                  {paso.label}
+                </p>
+                <p style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 700, color: paso.muted ? COLORS.textMuted : paso.color, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                  {paso.numero}
+                </p>
+                <p style={{ margin: "0 0 8px", fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                  {paso.desc}
+                </p>
+                <div style={{ height: 4, background: COLORS.border, borderRadius: 2 }}>
+                  <div style={{
+                    height: "100%", width: `${paso.barra}%`,
+                    background: paso.color, borderRadius: 2,
+                    transition: "width 0.8s ease-out",
+                  }} />
+                </div>
+              </div>
             </div>
-            {metricCell("Gasto", metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
-            {metricCell("CPL", metaLoading ? "..." : (metaData?.totals?.leads > 0
-              ? `$${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}`
-              : "—"))}
-            {metricCell("Leads", metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`)}
-            <div style={{ textAlign: "right" }}>
-              <ActiveBadge active={!!metaData} />
-            </div>
-          </div>
+          ))}
 
-          {/* Google Ads */}
-          <div style={sourceRowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285F4", flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Google Ads</span>
+          {metaPct !== null && (
+            <div style={{
+              background: "rgba(201,162,78,0.08)", border: "1px solid rgba(201,162,78,0.2)",
+              borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 8,
+              padding: "10px 14px", marginTop: 16,
+              fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6,
+            }}>
+              ✦ El {metaPct}% de la inversión está en Meta Ads y el {100 - metaPct}% en Google Ads.
+              {metaData?.totals?.leads > 0 && ` Cada lead de Meta cuesta $${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}.`}
             </div>
-            {metricCell("Gasto", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
-            {metricCell("Conversiones", googleLoading ? "..." : `${Math.round(googleData?.totals?.conversions || 0)}`)}
-            {metricCell("Costo / conv.", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.costPerConv || 0).toFixed(2)}`)}
-            <div style={{ textAlign: "right" }}>
-              <ActiveBadge active={!!googleData} />
-            </div>
-          </div>
-
-          {/* Google Analytics */}
-          <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EA4335", flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Sitio Web</span>
-            </div>
-            {metricCell("Usuarios", analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0"))}
-            {metricCell("Sesiones", analyticsLoading ? "..." : (analyticsData?.totals?.sessions?.toLocaleString() || "0"))}
-            {metricCell("País principal", analyticsLoading ? "..." : (analyticsData?.topCountries?.[0]?.country || "—"))}
-            <div style={{ textAlign: "right" }}>
-              <ActiveBadge active={!!analyticsData} />
-            </div>
-          </div>
+          )}
         </Card>
 
         {/* Columna derecha */}
@@ -291,78 +288,134 @@ export function DashboardHome({ profile, setActive }) {
             )}
           </Card>
 
-          {/* Estado de conexiones */}
+          {/* Distribución del gasto */}
           <Card>
-            <p style={{ margin: "0 0 10px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-              Conexiones
+            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+              Distribución del gasto
             </p>
-            {DATA_SOURCES.map((source) => (
-              <div key={source.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: SOURCE_DOT_COLORS[source.key] || COLORS.textMuted, flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>{source.label}</span>
-                </div>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
-                  background: source.connected ? "rgba(74,124,92,0.15)" : "rgba(220,38,38,0.08)",
-                  color: source.connected ? "#4A7C5C" : "#dc2626",
-                  fontFamily: "'Manrope', sans-serif",
-                }}>
-                  {source.connected ? "Conectado" : "● Pendiente"}
-                </span>
-              </div>
-            ))}
+            <ResponsiveContainer width="100%" height={80}>
+              <BarChart data={gastoData} layout="vertical" margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+                <XAxis type="number" hide />
+                <YAxis
+                  type="category" dataKey="nombre" width={80}
+                  tick={{ fontSize: 11, fontFamily: "'Manrope', sans-serif", fill: COLORS.textMuted }}
+                  axisLine={false} tickLine={false}
+                />
+                <Tooltip
+                  formatter={(v) => [`$${parseFloat(v).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, "Gasto"]}
+                  contentStyle={{ fontFamily: "'Manrope', sans-serif", fontSize: 12, borderRadius: 8, border: `1px solid ${COLORS.border}` }}
+                />
+                <Bar dataKey="gasto" radius={[0, 4, 4, 0]}>
+                  {gastoData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </Card>
 
         </div>
       </div>
 
-      {/* SECCIÓN 3 — NavCards con datos */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 16 }}>
-        <NavCard
-          icon={LayoutDashboard}
-          title="Métricas"
-          stat={metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-          statLabel="invertidos en Meta este mes"
-          navKey="metricas"
-          onClick={() => setActive?.("metricas")}
-          hovered={hovered}
-          onMouseEnter={() => setHovered("metricas")}
-          onMouseLeave={() => setHovered(null)}
-        />
-        <NavCard
-          icon={BarChart2}
-          title="Sitio Web"
-          stat={analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0")}
-          statLabel="usuarios en cec.cr este mes"
-          navKey="analytics"
-          onClick={() => setActive?.("analytics")}
-          hovered={hovered}
-          onMouseEnter={() => setHovered("analytics")}
-          onMouseLeave={() => setHovered(null)}
-        />
-        <NavCard
-          icon={MessageCircle}
-          title="Conversaciones de Sofía"
-          stat="0"
-          statLabel="conversaciones este mes"
-          navKey="sofia"
-          onClick={() => setActive?.("sofia")}
-          hovered={hovered}
-          onMouseEnter={() => setHovered("sofia")}
-          onMouseLeave={() => setHovered(null)}
-        />
-        <NavCard
-          icon={Sparkles}
-          title="Recomendaciones"
-          stat="3"
-          statLabel="fuentes de datos conectadas"
-          navKey="recomendaciones"
-          onClick={() => setActive?.("recomendaciones")}
-          hovered={hovered}
-          onMouseEnter={() => setHovered("recomendaciones")}
-          onMouseLeave={() => setHovered(null)}
-        />
+      {/* SECCIÓN 3 — Rendimiento por fuente + Conexiones */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 16 }}>
+
+        {/* Tabla de fuentes */}
+        <Card>
+          <p style={{ margin: "0 0 16px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            Rendimiento por fuente
+          </p>
+
+          {/* Meta Ads */}
+          <div style={sourceRowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: SOURCE_COLORS.meta, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Meta Ads</span>
+            </div>
+            {metricCell("Gasto", metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
+            {metricCell("CPL", metaLoading ? "..." : (metaData?.totals?.leads > 0
+              ? `$${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}`
+              : "—"))}
+            {metricCell("Leads", metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`)}
+            <div style={{ textAlign: "right" }}><ActiveBadge active={!!metaData} /></div>
+          </div>
+
+          {/* Google Ads */}
+          <div style={sourceRowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285F4", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Google Ads</span>
+            </div>
+            {metricCell("Gasto", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
+            {metricCell("Conversiones", googleLoading ? "..." : `${Math.round(googleData?.totals?.conversions || 0)}`)}
+            {metricCell("Costo / conv.", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.costPerConv || 0).toFixed(2)}`)}
+            <div style={{ textAlign: "right" }}><ActiveBadge active={!!googleData} /></div>
+          </div>
+
+          {/* Google Analytics */}
+          <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EA4335", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Sitio Web</span>
+            </div>
+            {metricCell("Usuarios", analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0"))}
+            {metricCell("Sesiones", analyticsLoading ? "..." : (analyticsData?.totals?.sessions?.toLocaleString() || "0"))}
+            {metricCell("País principal", analyticsLoading ? "..." : (analyticsData?.topCountries?.[0]?.country || "—"))}
+            <div style={{ textAlign: "right" }}><ActiveBadge active={!!analyticsData} /></div>
+          </div>
+        </Card>
+
+        {/* Conexiones */}
+        <Card>
+          <p style={{ margin: "0 0 10px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            Conexiones
+          </p>
+          {DATA_SOURCES.map((source) => (
+            <div key={source.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", background: SOURCE_DOT_COLORS[source.key] || COLORS.textMuted, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>{source.label}</span>
+              </div>
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
+                background: source.connected ? "rgba(74,124,92,0.15)" : "rgba(220,38,38,0.08)",
+                color: source.connected ? "#4A7C5C" : "#dc2626",
+                fontFamily: "'Manrope', sans-serif",
+              }}>
+                {source.connected ? "Conectado" : "● Pendiente"}
+              </span>
+            </div>
+          ))}
+        </Card>
+
+      </div>
+
+      {/* SECCIÓN 4 — Preparando Sofía */}
+      <div style={{
+        background: "rgba(31,74,64,0.04)", border: "1px solid rgba(31,74,64,0.1)",
+        borderRadius: 12, padding: "18px 22px",
+        display: "flex", alignItems: isMobile ? "flex-start" : "center",
+        justifyContent: "space-between", flexDirection: isMobile ? "column" : "row",
+        gap: isMobile ? 14 : 0,
+      }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+            <MessageCircle size={20} color={COLORS.gold} />
+            <span style={{ fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+              Sofía llega pronto
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6, maxWidth: 520 }}>
+            Cuando Sofía esté conectada a WhatsApp, este dashboard mostrará conversaciones en tiempo real, procedimientos más consultados y tasa de conversión de leads a citas.
+          </p>
+        </div>
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: "6px 14px", borderRadius: 20,
+          background: COLORS.panelAlt, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif",
+          flexShrink: 0,
+        }}>
+          Fase 3 — Próximamente
+        </span>
       </div>
 
     </div>
