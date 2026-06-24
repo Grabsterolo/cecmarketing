@@ -94,7 +94,7 @@ export function MetricsSection() {
 
   const insight = metaData ? getMetaInsight(metaData.campaigns, metaData.totals) : null;
 
-  const googleCampaigns = (googleData?.campaigns ?? []).map(c => ({
+  const googleCampaigns = (googleData?.campaigns || []).map(c => ({
     nombre: c.name,
     tipo: c.type,
     clics: c.clicks.toLocaleString(),
@@ -258,28 +258,28 @@ export function MetricsSection() {
           />
         )}
 
-        {!googleLoading && !googleError && googleData && (
+        {!googleLoading && !googleError && googleData?.campaigns && (
           <>
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20, marginTop: 20 }}>
               <MetricKpi
                 label="Gasto"
-                value={`$${parseFloat(googleData.totals.cost).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                value={`$${parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
                 sub="Este mes"
               />
               <MetricKpi
                 label="Clics"
-                value={`${googleData.totals.clicks.toLocaleString()}`}
+                value={`${(googleData?.totals?.clicks || 0).toLocaleString()}`}
                 sub="Al sitio web"
               />
               <MetricKpi
                 label="Conversiones"
-                value={`${googleData.totals.conversions}`}
+                value={`${googleData?.totals?.conversions || 0}`}
                 sub="Acciones completadas"
               />
               <MetricKpi
                 label="Costo / conv."
-                value={`$${googleData.totals.costPerConv}`}
+                value={`$${googleData?.totals?.costPerConv || 0}`}
                 sub="Promedio Google Ads"
               />
             </div>
