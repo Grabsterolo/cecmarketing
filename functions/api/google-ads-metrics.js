@@ -13,17 +13,6 @@ export async function onRequestGet({ env }) {
     }),
   });
   const tokenData = await tokenRes.json();
-
-  return new Response(JSON.stringify({
-    debug: true,
-    has_access_token: !!tokenData.access_token,
-    error: tokenData.error || null,
-    error_description: tokenData.error_description || null,
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
-
   const accessToken = tokenData.access_token;
 
   if (!accessToken) {
