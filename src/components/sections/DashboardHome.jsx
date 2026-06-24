@@ -19,10 +19,22 @@ const SOURCE_DOT_COLORS = {
   sofia:     SOURCE_COLORS.sofia,
 };
 
-function NavCard({ icon: Icon, title, stat, statLabel, navKey, onClick }) {
+function NavCard({ icon: Icon, title, stat, statLabel, navKey, onClick, hovered, onMouseEnter, onMouseLeave }) {
   const badge = NAV_BADGES[navKey];
+  const isHovered = hovered === navKey;
   return (
-    <Card style={{ cursor: "pointer", position: "relative", transition: "box-shadow 0.15s" }} onClick={onClick}>
+    <Card
+      style={{
+        cursor: "pointer",
+        position: "relative",
+        transition: "transform 0.15s, box-shadow 0.15s",
+        transform: isHovered ? "translateY(-2px)" : "translateY(0)",
+        boxShadow: isHovered ? "0 6px 20px rgba(31,74,64,0.12)" : "0 1px 6px rgba(31,74,64,0.06)",
+      }}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       {badge && (
         <span style={{
           position: "absolute", top: 12, right: 12,
@@ -67,6 +79,7 @@ export function DashboardHome({ profile, setActive }) {
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [googleData, setGoogleData] = useState(null);
   const [googleLoading, setGoogleLoading] = useState(true);
+  const [hovered, setHovered] = useState(null);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -104,13 +117,24 @@ export function DashboardHome({ profile, setActive }) {
       return cplA - cplB;
     })?.[0];
 
+  const bestGoogle = googleData?.campaigns
+    ?.filter(c => c.conversions > 0 && c.costPerConv > 0)
+    ?.sort((a, b) => a.costPerConv - b.costPerConv)?.[0];
+
   const sourceRowStyle = {
     display: "grid",
-    gridTemplateColumns: "130px 1fr 1fr 80px",
+    gridTemplateColumns: "130px 1fr 1fr 1fr 80px",
     alignItems: "center",
     padding: "16px 0",
     borderBottom: `1px solid ${COLORS.border}`,
   };
+
+  const metricCell = (label, value) => (
+    <div>
+      <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>{label}</p>
+      <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>{value}</p>
+    </div>
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -177,20 +201,11 @@ export function DashboardHome({ profile, setActive }) {
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: SOURCE_COLORS.meta, flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Meta Ads</span>
             </div>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Gasto</p>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-                {metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-              </p>
-            </div>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>CPL</p>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
-                {metaLoading ? "..." : (metaData?.totals?.leads > 0
-                  ? `$${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}`
-                  : "—")}
-              </p>
-            </div>
+            {metricCell("Gasto", metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
+            {metricCell("CPL", metaLoading ? "..." : (metaData?.totals?.leads > 0
+              ? `$${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}`
+              : "—"))}
+            {metricCell("Leads", metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`)}
             <div style={{ textAlign: "right" }}>
               <ActiveBadge active={!!metaData} />
             </div>
@@ -202,18 +217,9 @@ export function DashboardHome({ profile, setActive }) {
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285F4", flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Google Ads</span>
             </div>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Gasto</p>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-                {googleLoading ? "..." : `$${parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-              </p>
-            </div>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Conversiones</p>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
-                {googleLoading ? "..." : Math.round(googleData?.totals?.conversions || 0)}
-              </p>
-            </div>
+            {metricCell("Gasto", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
+            {metricCell("Conversiones", googleLoading ? "..." : `${Math.round(googleData?.totals?.conversions || 0)}`)}
+            {metricCell("Costo / conv.", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.costPerConv || 0).toFixed(2)}`)}
             <div style={{ textAlign: "right" }}>
               <ActiveBadge active={!!googleData} />
             </div>
@@ -225,18 +231,9 @@ export function DashboardHome({ profile, setActive }) {
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EA4335", flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Sitio Web</span>
             </div>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Usuarios</p>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-                {analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0")}
-              </p>
-            </div>
-            <div>
-              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sesiones</p>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
-                {analyticsLoading ? "..." : (analyticsData?.totals?.sessions?.toLocaleString() || "0")}
-              </p>
-            </div>
+            {metricCell("Usuarios", analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0"))}
+            {metricCell("Sesiones", analyticsLoading ? "..." : (analyticsData?.totals?.sessions?.toLocaleString() || "0"))}
+            {metricCell("País principal", analyticsLoading ? "..." : (analyticsData?.topCountries?.[0]?.country || "—"))}
             <div style={{ textAlign: "right" }}>
               <ActiveBadge active={!!analyticsData} />
             </div>
@@ -267,6 +264,30 @@ export function DashboardHome({ profile, setActive }) {
               </>
             ) : (
               <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sin campañas con leads</p>
+            )}
+          </Card>
+
+          {/* Mejor campaña Google */}
+          <Card>
+            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+              Mejor campaña Google
+            </p>
+            {googleLoading ? (
+              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando...</p>
+            ) : bestGoogle ? (
+              <>
+                <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1.4 }}>
+                  {bestGoogle.name.length > 22 ? bestGoogle.name.substring(0, 22) + "..." : bestGoogle.name}
+                </p>
+                <p style={{ margin: "0 0 2px", fontSize: 28, fontWeight: 700, color: "#4285F4", fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                  {`$${bestGoogle.costPerConv.toFixed(2)}`}
+                </p>
+                <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                  Costo por conversión
+                </p>
+              </>
+            ) : (
+              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sin datos</p>
             )}
           </Card>
 
@@ -305,6 +326,9 @@ export function DashboardHome({ profile, setActive }) {
           statLabel="invertidos en Meta este mes"
           navKey="metricas"
           onClick={() => setActive?.("metricas")}
+          hovered={hovered}
+          onMouseEnter={() => setHovered("metricas")}
+          onMouseLeave={() => setHovered(null)}
         />
         <NavCard
           icon={BarChart2}
@@ -313,6 +337,9 @@ export function DashboardHome({ profile, setActive }) {
           statLabel="usuarios en cec.cr este mes"
           navKey="analytics"
           onClick={() => setActive?.("analytics")}
+          hovered={hovered}
+          onMouseEnter={() => setHovered("analytics")}
+          onMouseLeave={() => setHovered(null)}
         />
         <NavCard
           icon={MessageCircle}
@@ -321,6 +348,9 @@ export function DashboardHome({ profile, setActive }) {
           statLabel="conversaciones este mes"
           navKey="sofia"
           onClick={() => setActive?.("sofia")}
+          hovered={hovered}
+          onMouseEnter={() => setHovered("sofia")}
+          onMouseLeave={() => setHovered(null)}
         />
         <NavCard
           icon={Sparkles}
@@ -329,6 +359,9 @@ export function DashboardHome({ profile, setActive }) {
           statLabel="fuentes de datos conectadas"
           navKey="recomendaciones"
           onClick={() => setActive?.("recomendaciones")}
+          hovered={hovered}
+          onMouseEnter={() => setHovered("recomendaciones")}
+          onMouseLeave={() => setHovered(null)}
         />
       </div>
 
