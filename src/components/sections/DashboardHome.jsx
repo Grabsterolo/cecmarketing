@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { LayoutDashboard, BarChart2, MessageCircle, Sparkles } from "lucide-react";
-import { COLORS } from "../../constants/colors.js";
+import { LayoutDashboard, BarChart2, MessageCircle, Sparkles, TrendingUp } from "lucide-react";
+import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
@@ -12,70 +12,50 @@ const NAV_BADGES = {
   recomendaciones: { label: "Próximamente",   bg: COLORS.panelAlt,         color: COLORS.textMuted },
 };
 
-function KpiCard({ label, value, sub, prominent, borderColor }) {
-  return (
-    <Card style={{ borderTop: `3px solid ${borderColor || COLORS.gold}` }}>
-      <p style={{ margin: "0 0 4px", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        {label}
-      </p>
-      <p style={{ margin: 0, fontSize: prominent ? 42 : 30, fontFamily: "'Manrope', sans-serif", fontWeight: 700, color: COLORS.green, lineHeight: 1.1 }}>
-        {value}
-      </p>
-      <p style={{ margin: "4px 0 0", fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        {sub}
-      </p>
-    </Card>
-  );
-}
+const SOURCE_DOT_COLORS = {
+  meta:      SOURCE_COLORS.meta,
+  google:    "#4285F4",
+  analytics: "#EA4335",
+  sofia:     SOURCE_COLORS.sofia,
+};
 
-function SourceLabel({ color, label }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        {label}
-      </span>
-    </div>
-  );
-}
-
-function NavCard({ icon: Icon, title, description, navKey, onClick }) {
+function NavCard({ icon: Icon, title, stat, statLabel, navKey, onClick }) {
   const badge = NAV_BADGES[navKey];
   return (
-    <Card style={{ cursor: "pointer", position: "relative" }} onClick={onClick}>
+    <Card style={{ cursor: "pointer", position: "relative", transition: "box-shadow 0.15s" }} onClick={onClick}>
       {badge && (
         <span style={{
-          position: "absolute", top: 14, right: 14,
-          fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
+          position: "absolute", top: 12, right: 12,
+          fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20,
           background: badge.bg, color: badge.color, fontFamily: "'Manrope', sans-serif",
         }}>
           {badge.label}
         </span>
       )}
-      <Icon size={22} color={COLORS.gold} />
-      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 18, fontWeight: 600, color: COLORS.green, margin: "12px 0 6px" }}>
-        {title}
-      </h3>
-      <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0, lineHeight: 1.5 }}>
-        {description}
+      <Icon size={18} color={COLORS.gold} />
+      <p style={{ margin: "10px 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1 }}>
+        {stat}
+      </p>
+      <p style={{ margin: "0 0 6px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+        {statLabel}
+      </p>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
+        {title} →
       </p>
     </Card>
   );
 }
 
-function SourceStatusRow({ source }) {
+function ActiveBadge({ active }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-      <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 600, fontFamily: "'Manrope', sans-serif" }}>{source.label}</span>
-      <span style={{
-        fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
-        background: source.connected ? "rgba(127,169,140,0.15)" : "rgba(220,38,38,0.08)",
-        color: source.connected ? "#4A7C5C" : "#dc2626",
-        fontFamily: "'Manrope', sans-serif",
-      }}>
-        {source.connected ? "Conectado" : "● Pendiente"}
-      </span>
-    </div>
+    <span style={{
+      fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
+      background: active ? "rgba(74,124,92,0.15)" : COLORS.panelAlt,
+      color: active ? "#4A7C5C" : COLORS.textMuted,
+      fontFamily: "'Manrope', sans-serif",
+    }}>
+      {active ? "● Activo" : "..."}
+    </span>
   );
 }
 
@@ -112,10 +92,9 @@ export function DashboardHome({ profile, setActive }) {
       .finally(() => setGoogleLoading(false));
   }, []);
 
-  const t = metaData?.totals;
-  const spend = metaLoading ? "..." : `$${parseFloat(t?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-  const metaLeads = metaLoading ? "..." : `${t?.leads || 0}`;
-  const metaCpl = metaLoading ? "..." : (t?.leads > 0 ? `$${(parseFloat(t?.spend || 0) / parseInt(t?.leads || 1)).toFixed(2)}` : "—");
+  const totalInvestment = (metaLoading || googleLoading)
+    ? "..."
+    : `$${(parseFloat(metaData?.totals?.spend || 0) + parseFloat(googleData?.totals?.cost || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
   const bestCampaign = metaData?.campaigns
     ?.filter(c => parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0) > 0)
@@ -124,120 +103,234 @@ export function DashboardHome({ profile, setActive }) {
       const cplB = parseFloat(b.spend) / parseInt(b.actions?.find(x => x.action_type === "lead")?.value || 1);
       return cplA - cplB;
     })?.[0];
-  const bestName = metaLoading ? "..." : (bestCampaign?.campaign_name?.substring(0, 18) || "—");
+
+  const sourceRowStyle = {
+    display: "grid",
+    gridTemplateColumns: "130px 1fr 1fr 80px",
+    alignItems: "center",
+    padding: "16px 0",
+    borderBottom: `1px solid ${COLORS.border}`,
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* Tarjetas de navegación */}
-      {isMobile ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Campañas de Meta Ads en un solo lugar."                   onClick={() => setActive?.("metricas")} />
-          <NavCard icon={BarChart2}       title="Sitio Web"              navKey="analytics"       description="Tráfico, usuarios y comportamiento en cec.cr."            onClick={() => setActive?.("analytics")} />
-          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."       onClick={() => setActive?.("sofia")} />
-          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones."  onClick={() => setActive?.("recomendaciones")} />
+      {/* SECCIÓN 1 — Resumen ejecutivo */}
+      <Card style={{ background: COLORS.green, border: "none" }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
+          gap: isMobile ? 24 : 0,
+        }}>
+          {[
+            {
+              label: "INVERSIÓN TOTAL",
+              value: totalInvestment,
+              sub: "Meta Ads + Google Ads este mes",
+              border: !isMobile,
+            },
+            {
+              label: "LEADS GENERADOS",
+              value: metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`,
+              sub: "Contactos desde Meta Ads",
+              border: !isMobile,
+            },
+            {
+              label: "USUARIOS EN EL SITIO",
+              value: analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0"),
+              sub: "Visitantes en cec.cr este mes",
+              border: false,
+            },
+          ].map((kpi, i) => (
+            <div key={i} style={{
+              padding: isMobile ? 0 : "0 24px",
+              paddingLeft: i === 0 ? 0 : undefined,
+              paddingRight: i === 2 ? 0 : undefined,
+              borderRight: kpi.border ? "1px solid rgba(255,255,255,0.12)" : "none",
+            }}>
+              <p style={{ margin: "0 0 6px", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, color: "rgba(255,255,255,0.6)", fontFamily: "'Manrope', sans-serif" }}>
+                {kpi.label}
+              </p>
+              <p style={{ margin: "0 0 4px", fontSize: 38, fontWeight: 700, color: "#FFFFFF", fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                {kpi.value}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "'Manrope', sans-serif" }}>
+                {kpi.sub}
+              </p>
+            </div>
+          ))}
         </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16 }}>
-          <NavCard icon={LayoutDashboard} title="Métricas"               navKey="metricas"        description="Campañas de Meta Ads en un solo lugar."                   onClick={() => setActive?.("metricas")} />
-          <NavCard icon={BarChart2}       title="Sitio Web"              navKey="analytics"       description="Tráfico, usuarios y comportamiento en cec.cr."            onClick={() => setActive?.("analytics")} />
-          <NavCard icon={MessageCircle}  title="Conversaciones de Sofía" navKey="sofia"           description="Qué pregunta la gente por WhatsApp, en tiempo real."       onClick={() => setActive?.("sofia")} />
-          <NavCard icon={Sparkles}       title="Recomendaciones"         navKey="recomendaciones" description="Patrones detectados al cruzar campañas y conversaciones."  onClick={() => setActive?.("recomendaciones")} />
-        </div>
-      )}
-
-      {/* Separador */}
-      <div style={{ height: 1, background: COLORS.border, margin: "4px 0 12px" }} />
-
-      {/* KPIs — Meta Ads */}
-      <div>
-        <SourceLabel color="#1877F2" label="Meta Ads" />
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "2fr 1fr 1fr 1fr", gap: 16 }}>
-          <KpiCard label="GASTO META ADS"   value={spend}     sub="Este mes"                prominent={true}  borderColor="#1877F2" />
-          <KpiCard label="LEADS"            value={metaLeads} sub="Contactos generados"     prominent={false} borderColor="#1877F2" />
-          <KpiCard label="COSTO POR LEAD"   value={metaCpl}   sub="Solo campañas con leads" prominent={false} borderColor="#1877F2" />
-          <KpiCard label="MEJOR CAMPAÑA"    value={bestName}  sub="Menor costo por lead"    prominent={false} borderColor="#1877F2" />
-        </div>
-      </div>
-
-      <div style={{ height: 1, background: COLORS.border, margin: "4px 0 8px" }} />
-
-      {/* KPIs — Google Analytics */}
-      <div>
-        <SourceLabel color="#EA4335" label="Sitio Web — cec.cr" />
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 16 }}>
-          <KpiCard
-            label="USUARIOS ACTIVOS"
-            value={analyticsLoading ? "..." : analyticsData?.totals?.users?.toLocaleString() || "0"}
-            sub="Este mes en cec.cr"
-            borderColor="#EA4335"
-          />
-          <KpiCard
-            label="SESIONES"
-            value={analyticsLoading ? "..." : analyticsData?.totals?.sessions?.toLocaleString() || "0"}
-            sub="Visitas totales"
-            borderColor="#EA4335"
-          />
-          <KpiCard
-            label="EVENTOS CLAVE"
-            value={analyticsLoading ? "..." : analyticsData?.totals?.keyEvents?.toLocaleString() || "0"}
-            sub="Consultas y conversiones"
-            borderColor="#EA4335"
-          />
-          <KpiCard
-            label="PAÍS PRINCIPAL"
-            value={analyticsLoading ? "..." : analyticsData?.topCountries?.[0]?.country || "—"}
-            sub={analyticsLoading ? "" : `${analyticsData?.topCountries?.[0]?.users?.toLocaleString() || 0} usuarios`}
-            borderColor="#EA4335"
-          />
-        </div>
-      </div>
-
-      <div style={{ height: 1, background: COLORS.border, margin: "4px 0 8px" }} />
-
-      {/* KPIs — Google Ads */}
-      <div>
-        <SourceLabel color="#4285F4" label="Google Ads" />
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 16 }}>
-          <KpiCard
-            label="GASTO GOOGLE"
-            value={googleLoading ? "..." : "$" + parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            sub="Este mes"
-            borderColor="#4285F4"
-          />
-          <KpiCard
-            label="CLICS"
-            value={googleLoading ? "..." : parseInt(googleData?.totals?.clicks || 0).toLocaleString()}
-            sub="Al sitio web"
-            borderColor="#4285F4"
-          />
-          <KpiCard
-            label="CONVERSIONES"
-            value={googleLoading ? "..." : `${Math.round(googleData?.totals?.conversions || 0)}`}
-            sub="Acciones completadas"
-            borderColor="#4285F4"
-          />
-          <KpiCard
-            label="COSTO / CONV."
-            value={googleLoading ? "..." : "$" + parseFloat(googleData?.totals?.costPerConv || 0).toFixed(2)}
-            sub="Promedio Google Ads"
-            borderColor="#4285F4"
-          />
-        </div>
-      </div>
-
-      {/* Estado de fuentes */}
-      <Card style={{ padding: "16px 20px" }}>
-        <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-          Estado de las fuentes de datos
-        </p>
-        {DATA_SOURCES.map((source) => (
-          <SourceStatusRow key={source.key} source={source} />
-        ))}
-        <p style={{ fontSize: 12, color: COLORS.textMuted, margin: "10px 0 0", fontFamily: "'Manrope', sans-serif" }}>
-          Meta Ads, Google Analytics y Google Ads conectados.
-        </p>
       </Card>
+
+      {/* SECCIÓN 2 — Tabla de fuentes + sidebar */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 16 }}>
+
+        {/* Columna izquierda — Tabla de fuentes */}
+        <Card>
+          <p style={{ margin: "0 0 16px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            Rendimiento por fuente
+          </p>
+
+          {/* Meta Ads */}
+          <div style={sourceRowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: SOURCE_COLORS.meta, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Meta Ads</span>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Gasto</p>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
+                {metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+              </p>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>CPL</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
+                {metaLoading ? "..." : (metaData?.totals?.leads > 0
+                  ? `$${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}`
+                  : "—")}
+              </p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <ActiveBadge active={!!metaData} />
+            </div>
+          </div>
+
+          {/* Google Ads */}
+          <div style={sourceRowStyle}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285F4", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Google Ads</span>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Gasto</p>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
+                {googleLoading ? "..." : `$${parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+              </p>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Conversiones</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
+                {googleLoading ? "..." : Math.round(googleData?.totals?.conversions || 0)}
+              </p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <ActiveBadge active={!!googleData} />
+            </div>
+          </div>
+
+          {/* Google Analytics */}
+          <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EA4335", flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Sitio Web</span>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Usuarios</p>
+              <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
+                {analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0")}
+              </p>
+            </div>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sesiones</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
+                {analyticsLoading ? "..." : (analyticsData?.totals?.sessions?.toLocaleString() || "0")}
+              </p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <ActiveBadge active={!!analyticsData} />
+            </div>
+          </div>
+        </Card>
+
+        {/* Columna derecha */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Mejor campaña Meta */}
+          <Card>
+            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+              Mejor campaña Meta
+            </p>
+            {metaLoading ? (
+              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando datos...</p>
+            ) : bestCampaign ? (
+              <>
+                <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1.4 }}>
+                  {bestCampaign.campaign_name}
+                </p>
+                <p style={{ margin: "0 0 2px", fontSize: 28, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                  {`$${(parseFloat(bestCampaign.spend) / parseInt(bestCampaign.actions?.find(a => a.action_type === "lead")?.value || 1)).toFixed(2)}`}
+                </p>
+                <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                  Costo por lead
+                </p>
+              </>
+            ) : (
+              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sin campañas con leads</p>
+            )}
+          </Card>
+
+          {/* Estado de conexiones */}
+          <Card>
+            <p style={{ margin: "0 0 10px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+              Conexiones
+            </p>
+            {DATA_SOURCES.map((source) => (
+              <div key={source.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: SOURCE_DOT_COLORS[source.key] || COLORS.textMuted, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>{source.label}</span>
+                </div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
+                  background: source.connected ? "rgba(74,124,92,0.15)" : "rgba(220,38,38,0.08)",
+                  color: source.connected ? "#4A7C5C" : "#dc2626",
+                  fontFamily: "'Manrope', sans-serif",
+                }}>
+                  {source.connected ? "Conectado" : "● Pendiente"}
+                </span>
+              </div>
+            ))}
+          </Card>
+
+        </div>
+      </div>
+
+      {/* SECCIÓN 3 — NavCards con datos */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 16 }}>
+        <NavCard
+          icon={LayoutDashboard}
+          title="Métricas"
+          stat={metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+          statLabel="invertidos en Meta este mes"
+          navKey="metricas"
+          onClick={() => setActive?.("metricas")}
+        />
+        <NavCard
+          icon={BarChart2}
+          title="Sitio Web"
+          stat={analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0")}
+          statLabel="usuarios en cec.cr este mes"
+          navKey="analytics"
+          onClick={() => setActive?.("analytics")}
+        />
+        <NavCard
+          icon={MessageCircle}
+          title="Conversaciones de Sofía"
+          stat="0"
+          statLabel="conversaciones este mes"
+          navKey="sofia"
+          onClick={() => setActive?.("sofia")}
+        />
+        <NavCard
+          icon={Sparkles}
+          title="Recomendaciones"
+          stat="3"
+          statLabel="fuentes de datos conectadas"
+          navKey="recomendaciones"
+          onClick={() => setActive?.("recomendaciones")}
+        />
+      </div>
 
     </div>
   );
