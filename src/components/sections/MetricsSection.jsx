@@ -36,6 +36,9 @@ export function MetricsSection() {
   const [metaData, setMetaData] = useState(null);
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState(null);
+  const [googleData, setGoogleData] = useState(null);
+  const [googleLoading, setGoogleLoading] = useState(true);
+  const [googleError, setGoogleError] = useState(null);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -46,6 +49,17 @@ export function MetricsSection() {
       })
       .catch(err => setMetaError(err.message))
       .finally(() => setMetaLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/google-ads-metrics")
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) setGoogleError(data.error);
+        else setGoogleData(data);
+      })
+      .catch(err => setGoogleError(err.message))
+      .finally(() => setGoogleLoading(false));
   }, []);
 
   const metaCampaigns = (metaData?.campaigns ?? []).map(c => {
@@ -79,6 +93,16 @@ export function MetricsSection() {
   const cplValue = campanasConLeads.length > 0 ? `$${cplReal}` : "—";
 
   const insight = metaData ? getMetaInsight(metaData.campaigns, metaData.totals) : null;
+
+  const googleCampaigns = (googleData?.campaigns ?? []).map(c => ({
+    nombre: c.name,
+    tipo: c.type,
+    clics: c.clicks.toLocaleString(),
+    ctr: c.ctr,
+    costo: `$${c.cost.toFixed(2)}`,
+    conversiones: c.conversions,
+    cpp: c.costPerConv > 0 ? `$${c.costPerConv.toFixed(2)}` : "—",
+  }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -213,12 +237,89 @@ export function MetricsSection() {
         )}
       </Card>
 
+      {/* Separador */}
+      <div style={{ height: 1, background: COLORS.border, margin: "0" }} />
+
       {/* Bloque Google Ads */}
-      <PendingIntegrationCard
-        icon={LayoutDashboard}
-        title="Google Ads — Próximamente"
-        description="El acceso a Google Ads está en proceso. Las métricas aparecerán aquí automáticamente cuando se confirme."
-      />
+      <Card>
+        <SourceDot color={SOURCE_COLORS.google} label="Google Ads" />
+
+        {googleLoading && (
+          <p style={{ fontSize: 14, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", textAlign: "center", padding: "32px 0", margin: 0 }}>
+            Cargando métricas de Google Ads...
+          </p>
+        )}
+
+        {!googleLoading && googleError && (
+          <PendingIntegrationCard
+            icon={LayoutDashboard}
+            title="No se pudo conectar con Google Ads"
+            description={googleError}
+          />
+        )}
+
+        {!googleLoading && !googleError && googleData && (
+          <>
+            {/* KPIs */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 20, marginTop: 20 }}>
+              <MetricKpi
+                label="Gasto"
+                value={`$${parseFloat(googleData.totals.cost).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
+                sub="Este mes"
+              />
+              <MetricKpi
+                label="Clics"
+                value={`${googleData.totals.clicks.toLocaleString()}`}
+                sub="Al sitio web"
+              />
+              <MetricKpi
+                label="Conversiones"
+                value={`${googleData.totals.conversions}`}
+                sub="Acciones completadas"
+              />
+              <MetricKpi
+                label="Costo / conv."
+                value={`$${googleData.totals.costPerConv}`}
+                sub="Promedio Google Ads"
+              />
+            </div>
+
+            {/* Tabla campañas */}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
+                <thead>
+                  <tr>
+                    {["Campaña", "Tipo", "Clics", "CTR", "Costo", "Conversiones", "Costo/conv."].map(h => (
+                      <th key={h} style={{ ...tableStyles.head, textAlign: h === "Campaña" || h === "Tipo" ? "left" : "right" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {googleCampaigns.map((c, i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? COLORS.panel : COLORS.panelAlt }}>
+                      <td style={{ ...tableStyles.cell, fontWeight: 600 }}>{c.nombre}</td>
+                      <td style={{ ...tableStyles.cell }}>{c.tipo}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right" }}>{c.clics}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right" }}>{c.ctr}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right" }}>{c.costo}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right", fontWeight: 700, color: COLORS.green }}>{c.conversiones}</td>
+                      <td style={{
+                        ...tableStyles.cell, textAlign: "right",
+                        fontWeight: c.cpp !== "—" ? 700 : 400,
+                        color: c.cpp !== "—" ? COLORS.green : COLORS.textMuted,
+                      }}>{c.cpp}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p style={{ margin: "8px 0 0", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>
+              * Datos actualizados diariamente a las 8:00 a.m. desde Google Ads.
+            </p>
+          </>
+        )}
+      </Card>
 
     </div>
   );

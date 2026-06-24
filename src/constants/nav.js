@@ -21,6 +21,6 @@ export const NAV_ITEMS = [
 export const DATA_SOURCES = [
   { key: "meta", label: "Meta Ads", connected: true },
   { key: "analytics", label: "Google Analytics", connected: true },
-  { key: "google", label: "Google Ads", connected: false },
+  { key: "google", label: "Google Ads", connected: true },
   { key: "sofia", label: "Conversaciones de Sofía", connected: true },
 ];

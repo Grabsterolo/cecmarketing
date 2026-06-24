@@ -173,7 +173,7 @@ export function DashboardHome({ profile, setActive }) {
           <SourceStatusRow key={source.key} source={source} />
         ))}
         <p style={{ fontSize: 12, color: COLORS.textMuted, margin: "10px 0 0", fontFamily: "'Manrope', sans-serif" }}>
-          Google Ads en proceso · Meta Ads y Google Analytics conectados.
+          Meta Ads, Google Analytics y Google Ads conectados.
         </p>
       </Card>
 
