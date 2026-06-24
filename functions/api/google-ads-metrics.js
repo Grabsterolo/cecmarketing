@@ -23,7 +23,7 @@ export async function onRequestGet({ env }) {
   }
 
   // 2. Leer el Google Sheet
-  const range = "Sheet1!A1:O100";
+  const range = "Hoja 1!A1:O100";
   const sheetRes = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_ID}/values/${range}`,
     { headers: { "Authorization": `Bearer ${accessToken}` } }
