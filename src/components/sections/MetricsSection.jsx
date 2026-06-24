@@ -6,48 +6,7 @@ import { LayoutDashboard } from "lucide-react";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { PendingIntegrationCard } from "../ui/PendingIntegrationCard.jsx";
-
-const cellStyle = {
-  padding: "11px 14px", fontSize: 13, fontFamily: "'Manrope', sans-serif",
-  color: COLORS.text, borderBottom: `1px solid ${COLORS.border}`, whiteSpace: "nowrap",
-};
-const headStyle = {
-  ...cellStyle, fontSize: 11, fontWeight: 700, textTransform: "uppercase",
-  letterSpacing: "0.08em", color: COLORS.textMuted, background: COLORS.panelAlt,
-};
-const tickStyle = { fontSize: 11, fontFamily: "'Manrope', sans-serif", fill: COLORS.textMuted };
-
-function Kpi({ label, value, sub, note }) {
-  return (
-    <div>
-      <p style={{ margin: "0 0 4px", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        {label}
-      </p>
-      <p style={{ margin: 0, fontSize: 28, fontFamily: "'Manrope', sans-serif", fontWeight: 700, color: COLORS.green, lineHeight: 1.1 }}>
-        {value}
-      </p>
-      <p style={{ margin: "4px 0 0", fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        {sub}
-      </p>
-      {note && (
-        <p style={{ margin: "2px 0 0", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", fontStyle: "italic" }}>
-          {note}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function SourceDot({ color, label }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-      <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
-      <h4 style={{ margin: 0, fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-        {label}
-      </h4>
-    </div>
-  );
-}
+import { MetricKpi, SourceDot, tableStyles } from "../ui/MetricKpi.jsx";
 
 function getMetaInsight(campaigns, totals) {
   const withLeads = (campaigns ?? []).filter(c => {
@@ -166,27 +125,27 @@ export function MetricsSection() {
 
             {/* KPIs */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 16, marginBottom: 20, marginTop: 20 }}>
-              <Kpi
+              <MetricKpi
                 label="Gasto"
                 value={`$${parseFloat(metaData.totals.spend).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
                 sub="Este mes"
               />
-              <Kpi
+              <MetricKpi
                 label="Impresiones"
                 value={`${parseInt(metaData.totals.impressions).toLocaleString()}`}
                 sub="Alcance total"
               />
-              <Kpi
+              <MetricKpi
                 label="Clics"
                 value={`${parseInt(metaData.totals.clicks).toLocaleString()}`}
                 sub="Al sitio web"
               />
-              <Kpi
+              <MetricKpi
                 label="Leads"
                 value={`${metaData.totals.leads}`}
                 sub="Contactos generados"
               />
-              <Kpi
+              <MetricKpi
                 label="Costo por lead"
                 value={cplValue}
                 sub="Promedio Meta Ads"
@@ -200,20 +159,20 @@ export function MetricsSection() {
                 <thead>
                   <tr>
                     {["Campaña", "Gasto", "Impresiones", "Clics", "Leads", "Costo / Lead"].map(h => (
-                      <th key={h} style={{ ...headStyle, textAlign: h === "Campaña" ? "left" : "right" }}>{h}</th>
+                      <th key={h} style={{ ...tableStyles.head, textAlign: h === "Campaña" ? "left" : "right" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {metaCampaigns.map((c, i) => (
                     <tr key={i} style={{ background: i % 2 === 0 ? COLORS.panel : COLORS.panelAlt }}>
-                      <td style={{ ...cellStyle, fontWeight: 600 }}>{c.nombre}</td>
-                      <td style={{ ...cellStyle, textAlign: "right" }}>{c.gasto}</td>
-                      <td style={{ ...cellStyle, textAlign: "right" }}>{c.impresiones}</td>
-                      <td style={{ ...cellStyle, textAlign: "right" }}>{c.clics}</td>
-                      <td style={{ ...cellStyle, textAlign: "right", fontWeight: 700, color: COLORS.green }}>{c.leads}</td>
+                      <td style={{ ...tableStyles.cell, fontWeight: 600 }}>{c.nombre}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right" }}>{c.gasto}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right" }}>{c.impresiones}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right" }}>{c.clics}</td>
+                      <td style={{ ...tableStyles.cell, textAlign: "right", fontWeight: 700, color: COLORS.green }}>{c.leads}</td>
                       <td style={{
-                        ...cellStyle, textAlign: "right",
+                        ...tableStyles.cell, textAlign: "right",
                         fontWeight: c.cpl !== "—" ? 700 : 400,
                         color: c.cpl !== "—" ? COLORS.green : COLORS.textMuted,
                       }}>{c.cpl}</td>
@@ -234,9 +193,9 @@ export function MetricsSection() {
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData} barGap={4} barCategoryGap="30%">
                 <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} vertical={false} />
-                <XAxis dataKey="name" tick={tickStyle} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left"  orientation="left"  tick={tickStyle} axisLine={false} tickLine={false} width={50} />
-                <YAxis yAxisId="right" orientation="right" tick={tickStyle} axisLine={false} tickLine={false} width={28} />
+                <XAxis dataKey="name" tick={tableStyles.tick} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left"  orientation="left"  tick={tableStyles.tick} axisLine={false} tickLine={false} width={50} />
+                <YAxis yAxisId="right" orientation="right" tick={tableStyles.tick} axisLine={false} tickLine={false} width={28} />
                 <Tooltip
                   contentStyle={{
                     fontFamily: "'Manrope', sans-serif", fontSize: 12,

@@ -6,7 +6,6 @@ export const COLORS = {
   gold: "#C9A24E",
   goldSoft: "#E4C77A",
   green: "#1F4A40",
-  greenSoft: "#2C6356",
   text: "#1F4A40",
   textMuted: "#6B8C80",
   border: "rgba(31,74,64,0.12)",

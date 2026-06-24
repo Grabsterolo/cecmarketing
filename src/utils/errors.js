@@ -10,8 +10,7 @@ export function translateError(msg = "") {
   if (m.includes("jwt expired") || m.includes("session expired")) return "Tu sesión ha expirado. Vuelve a iniciar sesión.";
   if (m.includes("row-level security") || m.includes("rls") || m.includes("policy")) return "No tienes permisos para realizar esta acción.";
   if (m.includes("duplicate") || m.includes("unique")) return "Ya existe un registro con estos datos.";
-  if (m.includes("overlap") || m.includes("exclusion") || m.includes("conflicting")) return "Ya tienes una solicitud de vacaciones en ese rango de fechas.";
-  if (m.includes("not found") || m.includes("no rows")) return "No se encontró el registro solicitado.";
+if (m.includes("not found") || m.includes("no rows")) return "No se encontró el registro solicitado.";
   if (m.includes("storage") || m.includes("upload")) return "Error al subir el archivo. Intenta de nuevo.";
   return msg || "Ocurrió un error inesperado. Intenta de nuevo.";
 }
