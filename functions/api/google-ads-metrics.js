@@ -51,7 +51,7 @@ export async function onRequestGet({ env }) {
   );
 
   const campaigns = dataRows.map(row => ({
-    name: row[0] || "",
+    name: (row[0] || "").replace(/^[☀-⛿✀-➿\u{1F300}-\u{1F9FF}●○■□️\s]+/u, "").trim(),
     state: row[1] || "",
     type: row[2] || "",
     clicks: parseInt(row[3] || 0),
@@ -59,7 +59,7 @@ export async function onRequestGet({ env }) {
     ctr: row[5] || "0%",
     avgCpc: parseFloat(row[7] || 0),
     cost: parseFloat(row[8] || 0),
-    conversions: parseFloat(row[11] || 0),
+    conversions: Math.round(parseFloat(row[11] || 0) * 10) / 10,
     costPerConv: parseFloat(row[13] || 0),
     convRate: row[14] || "0%",
   }));
@@ -68,7 +68,7 @@ export async function onRequestGet({ env }) {
     acc.clicks += c.clicks;
     acc.impressions += c.impressions;
     acc.cost += c.cost;
-    acc.conversions += c.conversions;
+    acc.conversions = Math.round((acc.conversions + c.conversions) * 10) / 10;
     return acc;
   }, { clicks: 0, impressions: 0, cost: 0, conversions: 0 });
 
