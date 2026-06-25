@@ -160,9 +160,19 @@ export function Sidebar({ active, setActive, onLogout }) {
           Cerrar sesión
         </button>
         <div style={{ textAlign: "center", paddingBottom: 8, paddingTop: 2 }}>
-          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.04em" }}>
+          <a
+            href="https://aurevo-3nr.pages.dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              fontSize: 10, color: "rgba(255,255,255,0.4)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.04em",
+              textDecoration: "none", opacity: 0.6, transition: "opacity 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+            onMouseLeave={e => e.currentTarget.style.opacity = "0.6"}
+          >
             Powered by Aurevo
-          </span>
+          </a>
         </div>
       </div>
     </div>
