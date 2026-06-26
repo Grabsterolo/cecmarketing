@@ -1,7 +1,7 @@
 export async function onRequestGet({ env }) {
-  const { GA_CLIENT_ID, GA_CLIENT_SECRET, GA_REFRESH_TOKEN, GOOGLE_SHEETS_ID } = env;
+  const { GA_CLIENT_ID, GA_CLIENT_SECRET, GA_REFRESH_TOKEN } = env;
 
-  // 1. Obtener Access Token con Refresh Token (mismo mecanismo que Analytics)
+  // 1. Obtener Access Token
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -22,10 +22,26 @@ export async function onRequestGet({ env }) {
     });
   }
 
-  // 2. Leer el Google Sheet
+  // 2. Buscar el Sheet más reciente en Drive
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name+contains+'Rendimiento+de+Campa%C3%B1a'+and+mimeType='application/vnd.google-apps.spreadsheet'&orderBy=createdTime+desc&pageSize=1&fields=files(id,name,createdTime)`,
+    { headers: { "Authorization": `Bearer ${accessToken}` } }
+  );
+  const searchData = await searchRes.json();
+
+  if (!searchData.files || searchData.files.length === 0) {
+    return new Response(JSON.stringify({ error: "No se encontró el reporte de Google Ads en Drive" }), {
+      status: 404,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const sheetId = searchData.files[0].id;
+
+  // 3. Leer el Sheet
   const range = "Hoja 1!A1:O100";
   const sheetRes = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_ID}/values/${range}`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,
     { headers: { "Authorization": `Bearer ${accessToken}` } }
   );
   const sheetData = await sheetRes.json();
@@ -45,7 +61,7 @@ export async function onRequestGet({ env }) {
     });
   }
 
-  // 3. Procesar filas — fila 1 es header, fila 2+ son datos
+  // 4. Procesar filas
   const dataRows = rows.slice(1).filter(row =>
     row[1] === "Enabled" && parseFloat(row[8] || 0) > 0
   );
@@ -77,7 +93,7 @@ export async function onRequestGet({ env }) {
   totals.costPerConv = totals.conversions > 0
     ? (totals.cost / totals.conversions).toFixed(2) : 0;
 
-  return new Response(JSON.stringify({ campaigns, totals }), {
+  return new Response(JSON.stringify({ campaigns, totals, sheetId }), {
     status: 200,
     headers: {
       "content-type": "application/json",
