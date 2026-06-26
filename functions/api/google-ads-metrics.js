@@ -22,22 +22,6 @@ export async function onRequestGet({ env }) {
     });
   }
 
-  // DEBUG TEMPORAL
-  const testSearch = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&orderBy=createdTime+desc&pageSize=5&fields=files(id,name,createdTime)`,
-    { headers: { "Authorization": `Bearer ${accessToken}` } }
-  );
-  const testData = await testSearch.json();
-
-  return new Response(JSON.stringify({
-    debug: true,
-    files: testData.files || [],
-    error: testData.error || null,
-  }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
-
   // 2. Buscar el Sheet más reciente en Drive
   const searchRes = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=name+contains+'Rendimiento+de+Campa%C3%B1a'+and+mimeType='application/vnd.google-apps.spreadsheet'&orderBy=createdTime+desc&pageSize=1&fields=files(id,name,createdTime)`,
