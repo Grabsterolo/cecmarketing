@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Sparkles } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
@@ -399,23 +399,34 @@ export function DashboardHome({ profile, setActive }) {
         gap: isMobile ? 14 : 0,
       }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <MessageCircle size={20} color={COLORS.gold} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <Sparkles size={18} color={COLORS.gold} />
             <span style={{ fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-              Sofía llega pronto
+              Sofía ya analiza tus datos
             </span>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6, maxWidth: 520 }}>
-            Cuando Sofía esté conectada a WhatsApp, este dashboard mostrará conversaciones en tiempo real, procedimientos más consultados y tasa de conversión de leads a citas.
+            Sofía genera un reporte diario con observaciones y recomendaciones basadas en Meta Ads, Google Ads y Analytics.
           </p>
         </div>
-        <span style={{
-          fontSize: 11, fontWeight: 700, padding: "6px 14px", borderRadius: 20,
-          background: COLORS.panelAlt, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif",
-          flexShrink: 0,
-        }}>
-          Fase 3 — Próximamente
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: "6px 14px", borderRadius: 20,
+            background: "rgba(201,162,78,0.15)", color: COLORS.gold, fontFamily: "'Manrope', sans-serif",
+          }}>
+            Nuevo ✦
+          </span>
+          <button
+            onClick={() => setActive?.("recomendaciones")}
+            style={{
+              background: COLORS.green, color: "white", border: "none",
+              borderRadius: 8, padding: "8px 16px", fontSize: 13,
+              fontWeight: 600, fontFamily: "'Manrope', sans-serif", cursor: "pointer",
+            }}
+          >
+            Ver análisis →
+          </button>
+        </div>
       </div>
 
     </div>
