@@ -21,9 +21,15 @@ export async function onRequestPost({ env }) {
     const { access_token } = await tokenRes.json();
 
     // 2. Obtener datos de Meta Ads
-    const today = new Date();
-    const firstDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-    const lastDay = today.toISOString().split("T")[0];
+    // Costa Rica es UTC-6
+    const now = new Date();
+    const crOffset = -6 * 60;
+    const crTime = new Date(now.getTime() + (crOffset - now.getTimezoneOffset()) * 60000);
+    const year = crTime.getFullYear();
+    const month = String(crTime.getMonth() + 1).padStart(2, "0");
+    const day = String(crTime.getDate()).padStart(2, "0");
+    const lastDay = `${year}-${month}-${day}`;
+    const firstDay = `${year}-${month}-01`;
 
     const metaFields = "campaign_name,spend,impressions,clicks,reach,cpc,ctr,actions";
     const metaUrl = `https://graph.facebook.com/v19.0/${META_AD_ACCOUNT_ID}/insights?fields=${metaFields}&time_range={"since":"${firstDay}","until":"${lastDay}"}&level=campaign&access_token=${META_ACCESS_TOKEN}`;
@@ -144,7 +150,7 @@ SITIO WEB (cec.cr):
 - Eventos clave: ${analyticsTotals.keyEvents}
 - País principal: ${analyticsTotals.topCountry}
 
-Genera un análisis en español con este formato exacto:
+Genera un análisis en español con EXACTAMENTE este formato. NO agregues títulos adicionales, NO uses #, NO uses --, NO agregues fechas ni encabezados extra. Empieza directamente con **RESUMEN DEL DÍA**:
 
 **RESUMEN DEL DÍA**
 [2-3 oraciones con los datos más importantes y el estado general del marketing]
@@ -163,7 +169,7 @@ Genera un análisis en español con este formato exacto:
 2. [acción concreta y específica]
 3. [acción concreta y específica si aplica]
 
-Sé específico con los números. Tono profesional pero directo. Máximo 300 palabras.`;
+Sé específico con los números. Tono profesional pero directo. Máximo 300 palabras. Empieza con **RESUMEN DEL DÍA** sin nada antes.`;
 
     // 6. Llamar a Claude API
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
