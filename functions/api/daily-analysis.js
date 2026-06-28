@@ -139,8 +139,9 @@ META ADS:
 - Gasto total: $${metaTotals.spend}
 - Leads generados: ${metaTotals.leads}
 - CPL promedio (solo campañas con leads): ${metaTotals.leads > 0 ? "$" + (parseFloat(metaTotals.spend) / metaTotals.leads).toFixed(2) : "N/A"}
-- Campañas activas: ${metaCampaigns.length}
-- Mejor campaña (menor CPL): ${metaCampaigns.filter(c => c.cpl).sort((a, b) => parseFloat(a.cpl) - parseFloat(b.cpl))[0]?.name || "N/A"} con CPL de $${metaCampaigns.filter(c => c.cpl).sort((a, b) => parseFloat(a.cpl) - parseFloat(b.cpl))[0]?.cpl || "N/A"}
+
+Detalle por campaña:
+${metaCampaigns.map(c => `  • ${c.name}: gasto $${c.spend.toFixed(2)}, leads: ${c.leads}${c.cpl ? ", CPL: $" + c.cpl : " (sin leads)"}`).join('\n')}
 
 GOOGLE ADS:
 - Gasto total: $${googleTotals.cost}
