@@ -154,26 +154,34 @@ SITIO WEB (cec.cr):
 - Eventos clave: ${analyticsTotals.keyEvents}
 - País principal: ${analyticsTotals.topCountry}
 
-Genera un análisis en español de los resultados de AYER específicamente, no del mes. Usa frases como 'ayer', 'el día de ayer', no 'este mes'. Con EXACTAMENTE este formato sin agregar títulos extra ni ##:
+Genera un análisis en español de los resultados de AYER específicamente.
+Escribe como si le explicaras los resultados a alguien del equipo del CEC que no es experto en marketing digital — usa lenguaje simple, directo y humano. Evita tecnicismos. Cuando uses un número, explica qué significa.
+
+Por ejemplo:
+- En lugar de "CPL de $3.81" → "cada persona que dejó sus datos costó $3.81"
+- En lugar de "tasa de conversión del 8.8%" → "de cada 100 personas que vieron el anuncio, casi 9 hicieron clic"
+- En lugar de "eventos clave" → "personas que hicieron algo importante en el sitio como llenar un formulario"
+
+Con EXACTAMENTE este formato, sin agregar títulos extra, sin ##, sin --:
 
 **RESUMEN DEL DÍA**
-[2-3 oraciones con los datos más importantes y el estado general del marketing]
+[2-3 oraciones simples explicando cómo le fue al CEC ayer en publicidad. Como si le contaras a un colega en el pasillo.]
 
 **LO QUE ESTÁ FUNCIONANDO**
-- [observación positiva 1]
+- [observación positiva en lenguaje simple, con el número y su significado]
 - [observación positiva 2]
 - [observación positiva 3 si aplica]
 
 **ÁREAS DE ATENCIÓN**
-- [algo que merece revisión o ajuste]
-- [otro punto de atención si aplica]
+- [algo que merece revisión, explicado simplemente]
+- [otro punto si aplica]
 
-**RECOMENDACIONES**
-1. [acción concreta y específica]
-2. [acción concreta y específica]
-3. [acción concreta y específica si aplica]
+**QUÉ HACER HOY**
+1. [acción concreta, específica y simple — que cualquiera entienda qué hacer]
+2. [acción concreta 2]
+3. [acción concreta 3 si aplica]
 
-Sé específico con los números. Tono profesional pero directo. Máximo 300 palabras. Empieza con **RESUMEN DEL DÍA** sin nada antes.`;
+Máximo 250 palabras. Empieza directamente con **RESUMEN DEL DÍA**.`;
 
     // 6. Llamar a Claude API
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
