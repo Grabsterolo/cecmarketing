@@ -154,7 +154,7 @@ SITIO WEB (cec.cr):
 - Eventos clave: ${analyticsTotals.keyEvents}
 - País principal: ${analyticsTotals.topCountry}
 
-Genera un análisis en español de los resultados de AYER específicamente.
+Genera un análisis en español de los resultados del día analizado.
 Escribe como si le explicaras los resultados a alguien del equipo del CEC que no es experto en marketing digital — usa lenguaje simple, directo y humano. Evita tecnicismos. Cuando uses un número, explica qué significa.
 
 Por ejemplo:
@@ -165,7 +165,7 @@ Por ejemplo:
 Con EXACTAMENTE este formato, sin agregar títulos extra, sin ##, sin --:
 
 **RESUMEN DEL DÍA**
-[2-3 oraciones simples explicando cómo le fue al CEC ayer en publicidad. Como si le contaras a un colega en el pasillo.]
+[2-3 oraciones simples explicando cómo le fue al CEC en publicidad. Como si le contaras a un colega en el pasillo.]
 
 **LO QUE ESTÁ FUNCIONANDO**
 - [observación positiva en lenguaje simple, con el número y su significado]
