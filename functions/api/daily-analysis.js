@@ -25,11 +25,15 @@ export async function onRequestPost({ env }) {
     const now = new Date();
     const crOffset = -6 * 60;
     const crTime = new Date(now.getTime() + (crOffset - now.getTimezoneOffset()) * 60000);
-    const year = crTime.getFullYear();
-    const month = String(crTime.getMonth() + 1).padStart(2, "0");
-    const day = String(crTime.getDate()).padStart(2, "0");
+
+    // Ayer en Costa Rica
+    const yesterday = new Date(crTime);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const year = yesterday.getFullYear();
+    const month = String(yesterday.getMonth() + 1).padStart(2, "0");
+    const day = String(yesterday.getDate()).padStart(2, "0");
     const lastDay = `${year}-${month}-${day}`;
-    const firstDay = `${year}-${month}-01`;
+    const firstDay = lastDay; // mismo día — solo ayer
 
     const metaFields = "campaign_name,spend,impressions,clicks,reach,cpc,ctr,actions";
     const metaUrl = `https://graph.facebook.com/v19.0/${META_AD_ACCOUNT_ID}/insights?fields=${metaFields}&time_range={"since":"${firstDay}","until":"${lastDay}"}&level=campaign&access_token=${META_ACCESS_TOKEN}`;
@@ -129,7 +133,7 @@ export async function onRequestPost({ env }) {
     const prompt = `Eres Sofía, la asistente de marketing del Centro Europeo de Cirugía (CEC) en Costa Rica.
 Analiza los datos de marketing del mes actual y genera un reporte ejecutivo breve, claro y accionable.
 
-DATOS DEL DÍA (${lastDay}):
+DATOS DE AYER (${lastDay}):
 
 META ADS:
 - Gasto total: $${metaTotals.spend}
@@ -150,7 +154,7 @@ SITIO WEB (cec.cr):
 - Eventos clave: ${analyticsTotals.keyEvents}
 - País principal: ${analyticsTotals.topCountry}
 
-Genera un análisis en español con EXACTAMENTE este formato. NO agregues títulos adicionales, NO uses #, NO uses --, NO agregues fechas ni encabezados extra. Empieza directamente con **RESUMEN DEL DÍA**:
+Genera un análisis en español de los resultados de AYER específicamente, no del mes. Usa frases como 'ayer', 'el día de ayer', no 'este mes'. Con EXACTAMENTE este formato sin agregar títulos extra ni ##:
 
 **RESUMEN DEL DÍA**
 [2-3 oraciones con los datos más importantes y el estado general del marketing]
