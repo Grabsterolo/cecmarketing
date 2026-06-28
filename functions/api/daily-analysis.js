@@ -163,6 +163,8 @@ Por ejemplo:
 - En lugar de "tasa de conversión del 8.8%" → "de cada 100 personas que vieron el anuncio, casi 9 hicieron clic"
 - En lugar de "eventos clave" → "personas que hicieron algo importante en el sitio como llenar un formulario"
 
+IMPORTANTE: En las secciones de 'LO QUE ESTÁ FUNCIONANDO' y 'ÁREAS DE ATENCIÓN', SIEMPRE menciona el nombre exacto de cada campaña relevante. Nunca digas 'algunas campañas' o 'varias campañas' sin nombrarlas. Si hay campañas que gastaron sin generar leads, lista cada una por nombre.
+
 Con EXACTAMENTE este formato, sin agregar títulos extra, sin ##, sin --:
 
 **RESUMEN DEL DÍA**
