@@ -1,0 +1,166 @@
+export async function onRequestPost({ request, env }) {
+  const {
+    TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN,
+    TWILIO_WHATSAPP_NUMBER,
+    ANTHROPIC_API_KEY,
+    OPENAI_API_KEY,
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+  } = env;
+
+  // 1. Parsear el body de Twilio (viene como form-urlencoded)
+  const formData = await request.formData();
+  const incomingMsg = formData.get("Body") || "";
+  const from = formData.get("From") || "";
+
+  if (!incomingMsg || !from) {
+    return new Response("OK", { status: 200 });
+  }
+
+  // 2. Cargar sofia_config desde Supabase
+  const configRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/sofia_config?select=system_prompt,knowledge_base&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    }
+  );
+  const configData = await configRes.json();
+  const { system_prompt, knowledge_base } = configData[0] || {};
+
+  // 3. Hora actual en Costa Rica para el saludo
+  const nowCR = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  const hourCR = nowCR.getUTCHours();
+  let franjaHoraria;
+  if (hourCR >= 4 && hourCR < 12) {
+    franjaHoraria = "mañana (usar 'Buenos días')";
+  } else if (hourCR >= 12 && hourCR < 19) {
+    franjaHoraria = "tarde (usar 'Buenas tardes')";
+  } else {
+    franjaHoraria = "noche (usar 'Buenas noches')";
+  }
+  const horaContexto = `\n\nCONTEXTO DE HORA: Son las ${hourCR}:${String(nowCR.getUTCMinutes()).padStart(2, "0")} en Costa Rica. Es de ${franjaHoraria}.`;
+
+  // 4. Generar embedding para RAG
+  let chunks = [];
+  try {
+    const embedRes = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "text-embedding-3-small",
+        input: incomingMsg,
+      }),
+    });
+    if (embedRes.ok) {
+      const embedData = await embedRes.json();
+      const queryEmbedding = embedData.data[0].embedding;
+      const ragRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/rpc/match_sofia_chunks`,
+        {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query_embedding: queryEmbedding,
+            match_count: 6,
+            match_threshold: 0.5,
+          }),
+        }
+      );
+      if (ragRes.ok) chunks = await ragRes.json();
+    }
+  } catch {}
+
+  // 5. Construir system prompt con caching
+  const systemBlocks = [
+    {
+      type: "text",
+      text: system_prompt + horaContexto,
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
+  if (chunks.length > 0) {
+    systemBlocks.push({
+      type: "text",
+      text:
+        "BASE DE CONOCIMIENTO RELEVANTE PARA ESTA CONSULTA:\n\n" +
+        chunks.map((c) => c.content).join("\n\n---\n\n"),
+    });
+  } else if (knowledge_base) {
+    systemBlocks.push({
+      type: "text",
+      text:
+        "INFORMACIÓN COMPLETA DEL CEC (usa solo lo relevante):\n\n" +
+        knowledge_base,
+    });
+  }
+
+  // 6. Llamar a Claude
+  const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "prompt-caching-2024-07-31",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      system: systemBlocks,
+      messages: [{ role: "user", content: incomingMsg }],
+    }),
+  });
+
+  const claudeData = await claudeRes.json();
+  const reply =
+    claudeData.content?.[0]?.text ||
+    "Disculpe, en este momento no puedo responder. Por favor contáctenos al 2290-2526.";
+
+  // 7. Responder via Twilio
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
+  const credentials = btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+
+  await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      From: TWILIO_WHATSAPP_NUMBER,
+      To: from,
+      Body: reply,
+    }),
+  });
+
+  // 8. Guardar conversación en Supabase
+  await fetch(`${SUPABASE_URL}/rest/v1/sofia_conversations`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      phone_hash: btoa(from).substring(0, 32),
+      channel: "whatsapp_sandbox",
+      message_count: 1,
+      period: `${nowCR.getUTCFullYear()}-${String(nowCR.getUTCMonth() + 1).padStart(2, "0")}`,
+    }),
+  });
+
+  return new Response("OK", { status: 200 });
+}
