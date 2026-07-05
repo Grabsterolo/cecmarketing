@@ -336,23 +336,6 @@ export async function onRequestPost({ request, env }) {
     }),
   });
 
-  // 8. Guardar conversación en Supabase
-  await fetch(`${SUPABASE_URL}/rest/v1/sofia_conversations`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-    body: JSON.stringify({
-      phone_hash: btoa(from).substring(0, 32),
-      channel: "whatsapp_sandbox",
-      message_count: 1,
-      period: `${nowCR.getUTCFullYear()}-${String(nowCR.getUTCMonth() + 1).padStart(2, "0")}`,
-    }),
-  });
-
   return new Response(
     '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
     {
