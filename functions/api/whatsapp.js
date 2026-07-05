@@ -255,14 +255,11 @@ export async function onRequestPost({ request, env }) {
   // Detectar si es lead caliente (escalamiento)
   const isHotLead = reply.includes("[ESCALAR");
 
-  // Solo guardar/actualizar si hay algo relevante que detectar
-  if (detectedProcedure || wantsAppointment || isHotLead) {
-    const nowCRDate = new Date(Date.now() - 6 * 60 * 60 * 1000);
-    const period = `${nowCRDate.getUTCFullYear()}-${String(nowCRDate.getUTCMonth() + 1).padStart(2, "0")}`;
-
-    // Verificar si ya existe un registro para esta sesión
+  // Siempre guardar/actualizar — aunque no haya palabras clave detectadas
+  // para registrar el conteo de mensajes y el escalamiento
+  {
     const existingConvRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/sofia_conversations?phone_hash=eq.${phoneHash}&period=eq.${period}&select=id,procedure_interest,message_count&limit=1`,
+      `${SUPABASE_URL}/rest/v1/sofia_conversations?phone_hash=eq.${phoneHash}&order=created_at.desc&limit=1&select=id,procedure_interest,message_count,created_at`,
       {
         headers: {
           apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -272,11 +269,15 @@ export async function onRequestPost({ request, env }) {
     );
     const existingConv = await existingConvRes.json();
 
-    if (existingConv && existingConv.length > 0) {
+    // Solo reutilizar si fue creado hace menos de 4 horas (misma sesión)
+    const sessionRecord = existingConv?.[0];
+    const isActiveSameSession = sessionRecord &&
+      (Date.now() - new Date(sessionRecord.created_at).getTime()) < 4 * 60 * 60 * 1000;
+
+    if (isActiveSameSession) {
       // Actualizar registro existente
-      const existing = existingConv[0];
       await fetch(
-        `${SUPABASE_URL}/rest/v1/sofia_conversations?id=eq.${existing.id}`,
+        `${SUPABASE_URL}/rest/v1/sofia_conversations?id=eq.${sessionRecord.id}`,
         {
           method: "PATCH",
           headers: {
@@ -286,15 +287,17 @@ export async function onRequestPost({ request, env }) {
             Prefer: "return=minimal",
           },
           body: JSON.stringify({
-            procedure_interest: detectedProcedure || existing.procedure_interest,
+            procedure_interest: detectedProcedure || sessionRecord.procedure_interest,
             derived_to_appointment: wantsAppointment || isHotLead,
             sentiment: isHotLead ? "hot_lead" : "neutral",
-            message_count: (existing.message_count || 0) + 1,
+            message_count: (sessionRecord.message_count || 0) + 1,
           }),
         }
       );
     } else {
       // Crear nuevo registro
+      const nowCRDate = new Date(Date.now() - 6 * 60 * 60 * 1000);
+      const period = `${nowCRDate.getUTCFullYear()}-${String(nowCRDate.getUTCMonth() + 1).padStart(2, "0")}`;
       await fetch(`${SUPABASE_URL}/rest/v1/sofia_conversations`, {
         method: "POST",
         headers: {
