@@ -33,27 +33,30 @@ export async function onRequestPost({ request, env }) {
 
   const phoneHash = btoa(from).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
 
-  const sessionRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/sofia_whatsapp_sessions?phone_hash=eq.${phoneHash}&select=messages,updated_at&limit=1`,
-    {
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-    }
-  );
-
   let existingMessages = [];
-  if (sessionRes.ok) {
-    const sessionData = await sessionRes.json();
-    if (sessionData && sessionData.length > 0) {
-      const lastUpdate = new Date(sessionData[0].updated_at);
-      const hoursSince = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
-      if (hoursSince < 4) {
-        existingMessages = sessionData[0].messages || [];
+  try {
+    const sessionRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/sofia_whatsapp_sessions?phone_hash=eq.${phoneHash}&select=messages,updated_at&limit=1`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
       }
-      // Si tiene más de 4 horas: sesión nueva, existingMessages queda vacío
+    );
+    if (sessionRes.ok) {
+      const sessionData = await sessionRes.json();
+      if (sessionData && sessionData.length > 0) {
+        const lastUpdate = new Date(sessionData[0].updated_at);
+        const hoursSince = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+        if (hoursSince < 4) {
+          existingMessages = sessionData[0].messages || [];
+        }
+        // Si tiene más de 4 horas: sesión nueva, existingMessages queda vacío
+      }
     }
+  } catch (e) {
+    existingMessages = [];
   }
 
   // Agregar nuevo mensaje del usuario
@@ -257,7 +260,7 @@ export async function onRequestPost({ request, env }) {
 
   // Siempre guardar/actualizar — aunque no haya palabras clave detectadas
   // para registrar el conteo de mensajes y el escalamiento
-  {
+  try {
     const existingConvRes = await fetch(
       `${SUPABASE_URL}/rest/v1/sofia_conversations?phone_hash=eq.${phoneHash}&order=created_at.desc&limit=1&select=id,procedure_interest,message_count,created_at`,
       {
@@ -317,7 +320,7 @@ export async function onRequestPost({ request, env }) {
         }),
       });
     }
-  }
+  } catch (e) {}
 
   // 7. Responder via Twilio
   const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
