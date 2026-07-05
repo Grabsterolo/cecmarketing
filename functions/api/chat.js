@@ -49,11 +49,24 @@ export async function onRequestPost({ request, env }) {
     // RAG falla silenciosamente — Sofía responde igual sin chunks
   }
 
+  // Hora actual en Costa Rica (UTC-6)
+  const nowCR = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  const hourCR = nowCR.getUTCHours();
+  let franjaHoraria;
+  if (hourCR >= 4 && hourCR < 12) {
+    franjaHoraria = "mañana (usar 'Buenos días')";
+  } else if (hourCR >= 12 && hourCR < 19) {
+    franjaHoraria = "tarde (usar 'Buenas tardes')";
+  } else {
+    franjaHoraria = "noche (usar 'Buenas noches')";
+  }
+  const horaContexto = `\n\nCONTEXTO DE HORA: Son las ${hourCR}:${String(nowCR.getUTCMinutes()).padStart(2,'0')} en Costa Rica. Es de ${franjaHoraria}.`;
+
   // 3. Construir system prompt con caching
   const systemBlocks = [
     {
       type: "text",
-      text: system,
+      text: system + horaContexto,
       cache_control: { type: "ephemeral" },
     },
   ];
