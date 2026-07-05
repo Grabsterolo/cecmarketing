@@ -33,26 +33,27 @@ export async function onRequestPost({ request, env }) {
 
   const phoneHash = btoa(from).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
 
-  let existingMessages = [];
-  try {
-    const sessionRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/sofia_whatsapp_sessions?phone_hash=eq.${phoneHash}&select=messages&limit=1`,
-      {
-        headers: {
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    if (sessionRes.ok) {
-      const sessionData = await sessionRes.json();
-      if (sessionData && sessionData.length > 0 && sessionData[0].messages) {
-        existingMessages = sessionData[0].messages;
-      }
+  const sessionRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/sofia_whatsapp_sessions?phone_hash=eq.${phoneHash}&select=messages,updated_at&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
     }
-  } catch (e) {
-    existingMessages = [];
+  );
+
+  let existingMessages = [];
+  if (sessionRes.ok) {
+    const sessionData = await sessionRes.json();
+    if (sessionData && sessionData.length > 0) {
+      const lastUpdate = new Date(sessionData[0].updated_at);
+      const hoursSince = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+      if (hoursSince < 4) {
+        existingMessages = sessionData[0].messages || [];
+      }
+      // Si tiene más de 4 horas: sesión nueva, existingMessages queda vacío
+    }
   }
 
   // Agregar nuevo mensaje del usuario
@@ -202,6 +203,67 @@ export async function onRequestPost({ request, env }) {
       });
     }
   } catch (e) {}
+
+  // Detectar procedimiento de interés en el mensaje del usuario
+  const procedureKeywords = {
+    "aumento mamario": ["aumento", "implante", "senos", "mamaria", "mama", "pecho"],
+    "mastopexia": ["levantamiento", "mastopexia", "caídos", "caidos"],
+    "reducción mamaria": ["reducción", "reduccion", "grandes", "pesados"],
+    "rinoplastia": ["nariz", "rinoplastia", "rino"],
+    "liposucción": ["lipo", "liposucción", "lipoescultura", "grasa"],
+    "abdominoplastia": ["abdomen", "abdominoplastia", "tummy", "barriga", "piel"],
+    "lifting facial": ["lifting", "facelift", "facial", "rejuvenecimiento"],
+    "blefaroplastia": ["párpados", "parpados", "ojos", "blefaroplastia"],
+    "gluteoplastia": ["glúteos", "gluteos", "pompas", "cola", "GEM"],
+    "botox": ["botox", "toxina", "arrugas", "botulínica"],
+    "radiesse": ["radiesse", "volumen", "bioestimulador"],
+    "facetite": ["facetite", "papada", "cuello", "mandíbula"],
+    "bodytite": ["bodytite", "brazos", "muslos", "flacidez corporal"],
+    "morpheus": ["morpheus", "microagujas", "radiofrecuencia"],
+    "harmonyce": ["harmonyce", "harmonyca", "lifting"],
+    "paquetes": ["promoción", "promocion", "paquete", "precio", "costo", "cuánto", "cuanto"],
+  };
+
+  const msgLower = incomingMsg.toLowerCase();
+  let detectedProcedure = null;
+  for (const [procedure, keywords] of Object.entries(procedureKeywords)) {
+    if (keywords.some(k => msgLower.includes(k))) {
+      detectedProcedure = procedure;
+      break;
+    }
+  }
+
+  // Detectar intención de agendar
+  const appointmentKeywords = ["agendar", "cita", "valoración", "valoracion", "cuándo", "cuando puedo", "disponible", "horario"];
+  const wantsAppointment = appointmentKeywords.some(k => msgLower.includes(k));
+
+  // Detectar si es lead caliente (escalamiento)
+  const isHotLead = reply.includes("[ESCALAR");
+
+  // Solo guardar si hay algo relevante que registrar
+  if (detectedProcedure || wantsAppointment || isHotLead) {
+    const nowCRDate = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    const period = `${nowCRDate.getUTCFullYear()}-${String(nowCRDate.getUTCMonth() + 1).padStart(2, "0")}`;
+
+    await fetch(`${SUPABASE_URL}/rest/v1/sofia_conversations`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        phone_hash: phoneHash,
+        channel: "whatsapp_sandbox",
+        procedure_interest: detectedProcedure,
+        derived_to_appointment: wantsAppointment || isHotLead,
+        message_count: recentMessages.length + 1,
+        sentiment: isHotLead ? "hot_lead" : "neutral",
+        period: period,
+      }),
+    });
+  }
 
   // 7. Responder via Twilio
   const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
