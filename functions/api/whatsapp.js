@@ -206,22 +206,37 @@ export async function onRequestPost({ request, env }) {
 
   // Detectar procedimiento de interés en el mensaje del usuario
   const procedureKeywords = {
-    "aumento mamario": ["aumento", "implante", "senos", "mamaria", "mama", "pecho"],
-    "mastopexia": ["levantamiento", "mastopexia", "caídos", "caidos"],
-    "reducción mamaria": ["reducción", "reduccion", "grandes", "pesados"],
-    "rinoplastia": ["nariz", "rinoplastia", "rino"],
-    "liposucción": ["lipo", "liposucción", "lipoescultura", "grasa"],
-    "abdominoplastia": ["abdomen", "abdominoplastia", "tummy", "barriga", "piel"],
-    "lifting facial": ["lifting", "facelift", "facial", "rejuvenecimiento"],
-    "blefaroplastia": ["párpados", "parpados", "ojos", "blefaroplastia"],
-    "gluteoplastia": ["glúteos", "gluteos", "pompas", "cola", "GEM"],
-    "botox": ["botox", "toxina", "arrugas", "botulínica"],
-    "radiesse": ["radiesse", "volumen", "bioestimulador"],
-    "facetite": ["facetite", "papada", "cuello", "mandíbula"],
-    "bodytite": ["bodytite", "brazos", "muslos", "flacidez corporal"],
-    "morpheus": ["morpheus", "microagujas", "radiofrecuencia"],
-    "harmonyce": ["harmonyce", "harmonyca", "lifting"],
-    "paquetes": ["promoción", "promocion", "paquete", "precio", "costo", "cuánto", "cuanto"],
+    "aumento mamario": ["aumento", "implante", "senos", "mamaria", "mama", "pecho", "busto", "motiva", "talla"],
+    "mastopexia": ["levantamiento", "mastopexia", "caídos", "caidos", "ptosis", "levantar senos"],
+    "reducción mamaria": ["reducción", "reduccion", "grandes", "pesados", "reducir senos"],
+    "mia femtech": ["mia", "femtech", "inyectable", "diamond"],
+    "preserve": ["preservé", "preserve", "preservacion", "tejido propio"],
+    "rinoplastia": ["nariz", "rinoplastia", "rino", "punta", "tabique", "puente"],
+    "liposucción": ["lipo", "liposucción", "lipoescultura", "grasa", "vaser", "definición muscular"],
+    "abdominoplastia": ["abdomen", "abdominoplastia", "tummy", "barriga", "piel suelta", "flacidez abdominal", "posparto", "post parto"],
+    "lifting facial": ["lifting", "facelift", "rejuvenecimiento facial", "arrugas", "flacidez facial"],
+    "blefaroplastia": ["párpados", "parpados", "ojos", "blefaroplastia", "bolsas ojos"],
+    "otoplastia": ["orejas", "otoplastia", "orejas prominentes"],
+    "gluteoplastia": ["glúteos", "gluteos", "pompas", "cola", "GEM", "nalgas", "trasero"],
+    "ginecomastia": ["ginecomastia", "senos hombre", "pecho hombre"],
+    "mommy makeover": ["mommy", "makeover", "posparto", "post embarazo", "múltiple"],
+    "braquioplastia": ["brazos", "braquioplastia", "piel brazos", "lifting brazos"],
+    "botox": ["botox", "toxina", "arrugas", "botulínica", "xeomin", "dysport", "patas de gallo", "entrecejo"],
+    "radiesse": ["radiesse", "volumen", "bioestimulador", "relleno"],
+    "harmonycA": ["harmonyce", "harmonyca", "lifting no quirúrgico"],
+    "facetite": ["facetite", "papada", "cuello", "mandíbula", "papada grasa", "doble mentón"],
+    "bodytite": ["bodytite", "reafirmar", "flacidez corporal"],
+    "morpheus": ["morpheus", "microagujas", "radiofrecuencia", "morpheus burst"],
+    "ultherapy": ["ultherapy", "ultrasonido facial", "hifu"],
+    "liftera": ["liftera"],
+    "oxygeneo": ["oxygeneo", "oxigenación", "luminosidad"],
+    "limpieza facial": ["limpieza facial", "limpieza de cutis"],
+    "cosmelan": ["cosmelan", "manchas", "peeling", "dermamelan", "melasma"],
+    "depilación": ["depilación", "depilacion", "vello", "laser vello"],
+    "carboxiterapia": ["carboxiterapia", "celulitis", "estrías", "estrias", "ojeras"],
+    "paquetes": ["promoción", "promocion", "paquete", "precio", "costo", "cuánto", "cuanto", "oferta", "descuento", "julio"],
+    "valoración": ["valoración", "valoracion", "cita", "agendar", "consulta", "quiero operarme", "decidí", "decidi"],
+    "lipo papada": ["lipo papada", "papada grasa", "quantum rf", "lili"],
   };
 
   const msgLower = incomingMsg.toLowerCase();
@@ -240,29 +255,65 @@ export async function onRequestPost({ request, env }) {
   // Detectar si es lead caliente (escalamiento)
   const isHotLead = reply.includes("[ESCALAR");
 
-  // Solo guardar si hay algo relevante que registrar
+  // Solo guardar/actualizar si hay algo relevante que detectar
   if (detectedProcedure || wantsAppointment || isHotLead) {
     const nowCRDate = new Date(Date.now() - 6 * 60 * 60 * 1000);
     const period = `${nowCRDate.getUTCFullYear()}-${String(nowCRDate.getUTCMonth() + 1).padStart(2, "0")}`;
 
-    await fetch(`${SUPABASE_URL}/rest/v1/sofia_conversations`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({
-        phone_hash: phoneHash,
-        channel: "whatsapp_sandbox",
-        procedure_interest: detectedProcedure,
-        derived_to_appointment: wantsAppointment || isHotLead,
-        message_count: recentMessages.length + 1,
-        sentiment: isHotLead ? "hot_lead" : "neutral",
-        period: period,
-      }),
-    });
+    // Verificar si ya existe un registro para esta sesión
+    const existingConvRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/sofia_conversations?phone_hash=eq.${phoneHash}&period=eq.${period}&select=id,procedure_interest,message_count&limit=1`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+    const existingConv = await existingConvRes.json();
+
+    if (existingConv && existingConv.length > 0) {
+      // Actualizar registro existente
+      const existing = existingConv[0];
+      await fetch(
+        `${SUPABASE_URL}/rest/v1/sofia_conversations?id=eq.${existing.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+          },
+          body: JSON.stringify({
+            procedure_interest: detectedProcedure || existing.procedure_interest,
+            derived_to_appointment: wantsAppointment || isHotLead,
+            sentiment: isHotLead ? "hot_lead" : "neutral",
+            message_count: (existing.message_count || 0) + 1,
+          }),
+        }
+      );
+    } else {
+      // Crear nuevo registro
+      await fetch(`${SUPABASE_URL}/rest/v1/sofia_conversations`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          phone_hash: phoneHash,
+          channel: "whatsapp_sandbox",
+          procedure_interest: detectedProcedure,
+          derived_to_appointment: wantsAppointment || isHotLead,
+          message_count: 1,
+          sentiment: isHotLead ? "hot_lead" : "neutral",
+          period: period,
+        }),
+      });
+    }
   }
 
   // 7. Responder via Twilio
