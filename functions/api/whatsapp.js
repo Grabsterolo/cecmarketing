@@ -31,6 +31,31 @@ export async function onRequestPost({ request, env }) {
   const configData = await configRes.json();
   const { system_prompt, knowledge_base } = configData[0] || {};
 
+  // Generar hash del número para privacidad
+  const phoneHash = btoa(from).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+
+  // Cargar historial existente de Supabase
+  const sessionRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/sofia_whatsapp_sessions?phone_hash=eq.${phoneHash}&select=messages&limit=1`,
+    {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    }
+  );
+  const sessionData = await sessionRes.json();
+  const existingMessages = sessionData?.[0]?.messages || [];
+
+  // Agregar mensaje del usuario al historial
+  const updatedMessages = [
+    ...existingMessages,
+    { role: "user", content: incomingMsg }
+  ];
+
+  // Mantener solo los últimos 10 mensajes para no exceder el contexto
+  const recentMessages = updatedMessages.slice(-10);
+
   // 3. Hora actual en Costa Rica para el saludo
   const nowCR = new Date(Date.now() - 6 * 60 * 60 * 1000);
   const hourCR = nowCR.getUTCHours();
@@ -119,7 +144,7 @@ export async function onRequestPost({ request, env }) {
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
       system: systemBlocks,
-      messages: [{ role: "user", content: incomingMsg }],
+      messages: recentMessages,
     }),
   });
 
@@ -127,6 +152,28 @@ export async function onRequestPost({ request, env }) {
   const reply =
     claudeData.content?.[0]?.text ||
     "Disculpe, en este momento no puedo responder. Por favor contáctenos al 2290-2526.";
+
+  const messagesWithReply = [
+    ...recentMessages,
+    { role: "assistant", content: reply }
+  ];
+
+  // Guardar o actualizar sesión en Supabase
+  await fetch(`${SUPABASE_URL}/rest/v1/sofia_whatsapp_sessions`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates",
+    },
+    body: JSON.stringify({
+      phone_hash: phoneHash,
+      messages: messagesWithReply,
+      updated_at: new Date().toISOString(),
+      channel: "whatsapp_sandbox",
+    }),
+  });
 
   // 7. Responder via Twilio
   const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
