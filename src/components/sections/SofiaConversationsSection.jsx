@@ -16,16 +16,18 @@ function ConversationRow({ conv }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.text }}>
-            {conv.topic || "Tema sin clasificar"}
+            {conv.procedure_interest || "Tema sin clasificar"}
           </span>
           <span style={{ fontSize: 11.5, color: COLORS.textMuted, whiteSpace: "nowrap" }}>
             {new Date(conv.created_at).toLocaleDateString("es-CR", { day: "2-digit", month: "short" })}
           </span>
         </div>
         <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "4px 0 0", lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {conv.last_message || "—"}
+          {conv.sentiment === "hot_lead" ? "Lead caliente — solicitó agendar" :
+           conv.derived_to_appointment ? "Mostró interés en agendar" :
+           `${conv.message_count || 0} mensajes`}
         </p>
-        {conv.escalated && (
+        {(conv.derived_to_appointment || conv.sentiment === "hot_lead") && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: COLORS.gold, marginTop: 6 }}>
             <ArrowUpRight size={12} /> Escalado a asesor
           </span>
@@ -61,7 +63,7 @@ export function SofiaConversationsSection() {
   }, []);
 
   const topicCounts = conversations.reduce((acc, c) => {
-    const key = c.topic || "Sin clasificar";
+    const key = c.procedure_interest || "Sin clasificar";
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
@@ -79,7 +81,7 @@ export function SofiaConversationsSection() {
         <Card>
           <span style={{ fontSize: 12, color: COLORS.textMuted, fontWeight: 600 }}>Escaladas a un asesor</span>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, fontWeight: 600, color: COLORS.green, marginTop: 4 }}>
-            {conversations.filter(c => c.escalated).length}
+            {conversations.filter(c => c.derived_to_appointment || c.sentiment === "hot_lead").length}
           </div>
         </Card>
       </div>
