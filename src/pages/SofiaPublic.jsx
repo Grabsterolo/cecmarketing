@@ -229,21 +229,6 @@ export function SofiaPublic() {
         </button>
       </div>
 
-      {/* Footer */}
-      <div style={{
-        textAlign: "center",
-        padding: "6px",
-        fontSize: 10,
-        color: COLORS.textMuted,
-        background: "white",
-        flexShrink: 0,
-      }}>
-        <a href="https://aurevo-3nr.pages.dev" target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "inherit", textDecoration: "none" }}>
-          Powered by Aurevo
-        </a>
-      </div>
     </div>
   );
 }
