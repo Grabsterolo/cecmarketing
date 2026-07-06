@@ -101,6 +101,7 @@ export async function onRequestPost({ request, env }) {
     systemBlocks.push({
       type: "text",
       text: "INFORMACIÓN COMPLETA DEL CEC (usa solo lo relevante para la pregunta del paciente):\n\n" + knowledge_base,
+      cache_control: { type: "ephemeral" },
     });
   }
 
