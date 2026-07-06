@@ -41,7 +41,7 @@ export function SofiaPublic() {
 
   async function sendMessage() {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || !sofiaConfig) return;
 
     const newMessages = [...messages, { role: "user", content: text }];
     setMessages(newMessages);
@@ -209,9 +209,9 @@ export function SofiaPublic() {
         />
         <button
           onClick={sendMessage}
-          disabled={loading || !input.trim()}
+          disabled={loading || !input.trim() || !sofiaConfig}
           style={{
-            background: loading || !input.trim() ? COLORS.border : COLORS.green,
+            background: loading || !input.trim() || !sofiaConfig ? COLORS.border : COLORS.green,
             color: "white",
             border: "none",
             borderRadius: "50%",
