@@ -1,24 +1,27 @@
 export async function onRequestPost({ request, env }) {
-  let { system, knowledge_base, messages } = await request.json();
+  const { system: systemFromClient, knowledge_base: kbFromClient, messages } = await request.json();
 
-  // Si el cliente no envía la config (ej. la página pública de Sofía,
-  // que no tiene sesión autenticada para leer sofia_config vía RLS),
-  // cargarla aquí con la service role key.
-  if (!system) {
-    const configRes = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/sofia_config?select=system_prompt,knowledge_base&limit=1`,
-      {
-        headers: {
-          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-        },
+  let system = systemFromClient;
+  let knowledge_base = kbFromClient;
+
+  // Si no vienen del cliente (SofiaPublic), cargarlos desde Supabase
+  if (!system || !knowledge_base) {
+    try {
+      const configRes = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/sofia_config?select=system_prompt,knowledge_base&limit=1`,
+        {
+          headers: {
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        }
+      );
+      if (configRes.ok) {
+        const configData = await configRes.json();
+        system = system || configData[0]?.system_prompt;
+        knowledge_base = knowledge_base || configData[0]?.knowledge_base;
       }
-    );
-    if (configRes.ok) {
-      const configData = await configRes.json();
-      system = configData?.[0]?.system_prompt;
-      knowledge_base = configData?.[0]?.knowledge_base;
-    }
+    } catch {}
   }
 
   // 1. Generar embedding combinando los últimos 2 mensajes del usuario (contexto multi-turno)
