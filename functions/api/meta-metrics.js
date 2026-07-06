@@ -17,10 +17,12 @@ export async function onRequestGet({ env }) {
   const firstDay = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
   const lastDay = today.toISOString().split("T")[0];
 
-  const url = `https://graph.facebook.com/v19.0/${accountId}/insights?fields=${fields}&time_range={"since":"${firstDay}","until":"${lastDay}"}&level=campaign&access_token=${token}`;
+  const url = `https://graph.facebook.com/v19.0/${accountId}/insights?fields=${fields}&time_range={"since":"${firstDay}","until":"${lastDay}"}&level=campaign`;
 
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await res.json();
 
     if (data.error) {

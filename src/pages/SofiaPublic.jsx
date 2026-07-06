@@ -34,7 +34,10 @@ export function SofiaPublic() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-sofia-secret": import.meta.env.VITE_SOFIA_SECRET,
+        },
         body: JSON.stringify({ messages: newMessages }),
       });
       const data = await res.json();
@@ -99,7 +102,7 @@ export function SofiaPublic() {
       </div>
 
       {/* Mensajes */}
-      <div ref={messagesEndRef} style={{
+      <div style={{
         flex: 1,
         overflowY: "auto",
         padding: "16px",
@@ -159,6 +162,7 @@ export function SofiaPublic() {
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}

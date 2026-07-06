@@ -3,14 +3,8 @@ import { supabase } from "./lib/supabase.js";
 import { FONTS, COLORS } from "./constants/colors.js";
 import { LoginScreen } from "./components/auth/LoginScreen.jsx";
 import { Dashboard } from "./components/Dashboard.jsx";
-import { SofiaPublic } from "./pages/SofiaPublic.jsx";
 
 export default function App() {
-  // Ruta pública de Sofía — sin auth
-  if (window.location.pathname === "/sofia") {
-    return <SofiaPublic />;
-  }
-
   const [session, setSession] = useState(undefined); // undefined = checking, null = logged out
   const [profile, setProfile] = useState(null);
 

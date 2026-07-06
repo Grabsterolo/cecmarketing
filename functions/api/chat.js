@@ -1,4 +1,11 @@
 export async function onRequestPost({ request, env }) {
+  if (request.headers.get("x-sofia-secret") !== env.SOFIA_CHAT_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
   const { system: systemFromClient, knowledge_base: kbFromClient, messages } = await request.json();
 
   let system = systemFromClient;

@@ -91,7 +91,10 @@ export function TestSofiaSection() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-sofia-secret": import.meta.env.VITE_SOFIA_SECRET,
+        },
         body: JSON.stringify({ system: systemPrompt, knowledge_base: knowledge, messages: newMessages }),
       });
       const data = await res.json();
