@@ -1,5 +1,25 @@
 export async function onRequestPost({ request, env }) {
-  const { system, knowledge_base, messages } = await request.json();
+  let { system, knowledge_base, messages } = await request.json();
+
+  // Si el cliente no envía la config (ej. la página pública de Sofía,
+  // que no tiene sesión autenticada para leer sofia_config vía RLS),
+  // cargarla aquí con la service role key.
+  if (!system) {
+    const configRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/sofia_config?select=system_prompt,knowledge_base&limit=1`,
+      {
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+    if (configRes.ok) {
+      const configData = await configRes.json();
+      system = configData?.[0]?.system_prompt;
+      knowledge_base = configData?.[0]?.knowledge_base;
+    }
+  }
 
   // 1. Generar embedding combinando los últimos 2 mensajes del usuario (contexto multi-turno)
   const searchQuery = messages

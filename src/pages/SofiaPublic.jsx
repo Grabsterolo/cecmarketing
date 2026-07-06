@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { COLORS } from "../constants/colors.js";
-import { supabase } from "../lib/supabase.js";
 import { Send } from "lucide-react";
 import { Logo } from "../components/ui/Logo.jsx";
 
@@ -8,31 +7,15 @@ export function SofiaPublic() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sofiaConfig, setSofiaConfig] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    let mounted = true;
-    async function loadConfig() {
-      const { data, error } = await supabase
-        .from("sofia_config")
-        .select("system_prompt, knowledge_base")
-        .eq("id", 1)
-        .maybeSingle();
-      if (!mounted) return;
-      if (!error && data) setSofiaConfig(data);
-    }
-    loadConfig();
-
     function handleResize() {
       setIsMobile(window.innerWidth < 600);
     }
     window.addEventListener("resize", handleResize);
-    return () => {
-      mounted = false;
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -41,7 +24,7 @@ export function SofiaPublic() {
 
   async function sendMessage() {
     const text = input.trim();
-    if (!text || loading || !sofiaConfig) return;
+    if (!text || loading) return;
 
     const newMessages = [...messages, { role: "user", content: text }];
     setMessages(newMessages);
@@ -52,11 +35,7 @@ export function SofiaPublic() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          system: sofiaConfig?.system_prompt,
-          knowledge_base: sofiaConfig?.knowledge_base,
-          messages: newMessages,
-        }),
+        body: JSON.stringify({ messages: newMessages }),
       });
       const data = await res.json();
       const reply = data?.content?.[0]?.text ?? "(Sin respuesta)";
@@ -209,9 +188,9 @@ export function SofiaPublic() {
         />
         <button
           onClick={sendMessage}
-          disabled={loading || !input.trim() || !sofiaConfig}
+          disabled={loading || !input.trim()}
           style={{
-            background: loading || !input.trim() || !sofiaConfig ? COLORS.border : COLORS.green,
+            background: loading || !input.trim() ? COLORS.border : COLORS.green,
             color: "white",
             border: "none",
             borderRadius: "50%",
