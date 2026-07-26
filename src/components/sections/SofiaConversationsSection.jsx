@@ -23,11 +23,12 @@ function ConversationRow({ conv }) {
           </span>
         </div>
         <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "4px 0 0", lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {conv.sentiment === "hot_lead" ? "Lead caliente — solicitó agendar" :
+          {conv.escalated && conv.escalation_reason ? conv.escalation_reason :
+           conv.sentiment === "hot_lead" ? "Lead caliente — solicitó agendar" :
            conv.derived_to_appointment ? "Mostró interés en agendar" :
            `${conv.message_count || 0} mensajes`}
         </p>
-        {(conv.derived_to_appointment || conv.sentiment === "hot_lead") && (
+        {conv.escalated && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700, color: COLORS.gold, marginTop: 6 }}>
             <ArrowUpRight size={12} /> Escalado a asesor
           </span>
@@ -81,7 +82,7 @@ export function SofiaConversationsSection() {
         <Card>
           <span style={{ fontSize: 12, color: COLORS.textMuted, fontWeight: 600 }}>Escaladas a un asesor</span>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 32, fontWeight: 600, color: COLORS.green, marginTop: 4 }}>
-            {conversations.filter(c => c.derived_to_appointment || c.sentiment === "hot_lead").length}
+            {conversations.filter(c => c.escalated).length}
           </div>
         </Card>
       </div>
