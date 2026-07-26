@@ -69,6 +69,7 @@ export function SofiaConversationsSection() {
     return acc;
   }, {});
   const topTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxTopicCount = Math.max(1, ...topTopics.map(([, count]) => count));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -98,7 +99,8 @@ export function SofiaConversationsSection() {
                 <span style={{ fontSize: 13, color: COLORS.text, width: 160, flexShrink: 0, fontWeight: 600 }}>{topic}</span>
                 <div style={{ flex: 1, height: 8, background: COLORS.panelAlt, borderRadius: 4, overflow: "hidden" }}>
                   <div style={{
-                    width: `${(count / topTopics[0][1]) * 100}%`, height: "100%",
+                    width: `${Math.min(100, (count / maxTopicCount) * 100)}%`,
+                    maxWidth: "100%", height: "100%",
                     background: `linear-gradient(90deg, ${COLORS.goldSoft}, ${COLORS.gold})`,
                   }} />
                 </div>
