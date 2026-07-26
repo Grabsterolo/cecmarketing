@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Settings2, Save, Check, Zap } from "lucide-react";
+import { Settings2, Save, Check, Zap, Power } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card, CardHeader } from "../ui/Card.jsx";
 import { taStyle, btnSubmitStyle } from "../../styles/forms.js";
@@ -44,6 +44,8 @@ function EditableBlock({ title, description, fieldKey, value, onChange, onSave, 
 export function ConfigureSofiaSection() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [knowledge, setKnowledge] = useState("");
+  const [whatsappEnabled, setWhatsappEnabled] = useState(true);
+  const [togglingWhatsapp, setTogglingWhatsapp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingField, setSavingField] = useState(null);
   const [savedField, setSavedField] = useState(null);
@@ -55,11 +57,11 @@ export function ConfigureSofiaSection() {
     async function load() {
       setLoading(true);
       // Tabla esperada: sofia_config con una fila única (id = 1) y columnas
-      // system_prompt / knowledge_base. Ver nota de implementación al final
-      // del archivo para el SQL de creación.
+      // system_prompt / knowledge_base / whatsapp_enabled. Ver nota de
+      // implementación al final del archivo para el SQL de creación.
       const { data, error: fetchError } = await supabase
         .from("sofia_config")
-        .select("system_prompt, knowledge_base")
+        .select("system_prompt, knowledge_base, whatsapp_enabled")
         .eq("id", 1)
         .maybeSingle();
       if (!mounted) return;
@@ -68,12 +70,28 @@ export function ConfigureSofiaSection() {
       } else if (data) {
         setSystemPrompt(data.system_prompt || "");
         setKnowledge(data.knowledge_base || "");
+        setWhatsappEnabled(data.whatsapp_enabled ?? true);
       }
       setLoading(false);
     }
     load();
     return () => { mounted = false; };
   }, []);
+
+  async function handleToggleWhatsapp() {
+    const next = !whatsappEnabled;
+    setWhatsappEnabled(next);
+    setTogglingWhatsapp(true);
+    const { error: toggleError } = await supabase
+      .from("sofia_config")
+      .update({ whatsapp_enabled: next, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    setTogglingWhatsapp(false);
+    if (toggleError) {
+      setWhatsappEnabled(!next);
+      setError(toggleError.message);
+    }
+  }
 
   function handleChange(fieldKey, value) {
     if (fieldKey === "system_prompt") setSystemPrompt(value);
@@ -124,6 +142,59 @@ export function ConfigureSofiaSection() {
 
       {!loading && (
         <>
+          <Card style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            gap: 16, padding: "18px 22px",
+            background: whatsappEnabled ? "rgba(31,74,64,0.06)" : "rgba(192,57,43,0.08)",
+            border: `1.5px solid ${whatsappEnabled ? COLORS.green : "#c0392b"}`,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{
+                width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
+                background: whatsappEnabled ? COLORS.green : "#c0392b",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "background 0.15s",
+              }}>
+                <Power size={19} color="#fff" />
+              </div>
+              <div>
+                <p style={{
+                  margin: 0, fontWeight: 700, fontSize: 15,
+                  color: whatsappEnabled ? COLORS.green : "#c0392b",
+                }}>
+                  {whatsappEnabled ? "Sofía al aire" : "Sofía en pausa"}
+                </p>
+                <p style={{ margin: "2px 0 0", fontSize: 12.5, color: COLORS.textMuted, lineHeight: 1.5 }}>
+                  {whatsappEnabled
+                    ? "Está respondiendo mensajes de WhatsApp automáticamente."
+                    : "No está respondiendo ningún mensaje de WhatsApp ahora mismo."}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleWhatsapp}
+              disabled={togglingWhatsapp}
+              role="switch"
+              aria-checked={whatsappEnabled}
+              aria-label="Activar o pausar a Sofía en WhatsApp"
+              style={{
+                position: "relative", width: 56, height: 30, borderRadius: 999,
+                border: "none", flexShrink: 0,
+                cursor: togglingWhatsapp ? "wait" : "pointer",
+                background: whatsappEnabled ? COLORS.green : "#c0392b",
+                opacity: togglingWhatsapp ? 0.6 : 1,
+                transition: "background 0.15s",
+              }}
+            >
+              <span style={{
+                position: "absolute", top: 3, left: whatsappEnabled ? 29 : 3,
+                width: 24, height: 24, borderRadius: "50%", background: "#fff",
+                transition: "left 0.15s",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+              }} />
+            </button>
+          </Card>
+
           <EditableBlock
             title="Reglas de comportamiento"
             description="Tono, escalamiento, y reglas críticas — lo que define cómo se comporta Sofía."
@@ -198,10 +269,13 @@ export function ConfigureSofiaSection() {
 //   id int primary key default 1,
 //   system_prompt text,
 //   knowledge_base text,
+//   whatsapp_enabled boolean default true,
 //   updated_at timestamptz default now(),
 //   constraint single_row check (id = 1)
 // );
 //
 // El backend del webhook de WhatsApp debe leer esta misma fila en cada
 // mensaje (o cachear con invalidación corta) para armar el prompt completo
-// que se envía a Claude.
+// que se envía a Claude. whatsapp_enabled es el interruptor de emergencia:
+// el Worker (cec-sofia-whatsapp) lo revisa antes que cualquier otra cosa y,
+// si es false, ignora el mensaje entrante por completo.
