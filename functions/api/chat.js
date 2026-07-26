@@ -134,7 +134,13 @@ export async function onRequestPost({ request, env }) {
 
   const data = await response.json();
 
-  return new Response(JSON.stringify(data), {
+  const rawText = data?.content?.[0]?.text ?? "";
+  const escalationMatch = rawText.match(/\[ESCALAR:?\s*([^\]]*)\]/i);
+  const escalated = !!escalationMatch;
+  const escalation_reason = escalated ? (escalationMatch[1].trim() || null) : null;
+  const reply = rawText.replace(/\s*\[ESCALAR:?\s*([^\]]*)\]\s*/i, " ").trim();
+
+  return new Response(JSON.stringify({ ...data, reply, escalated, escalation_reason }), {
     status: response.status,
     headers: { "content-type": "application/json" },
   });

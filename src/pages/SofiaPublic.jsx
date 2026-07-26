@@ -41,7 +41,7 @@ export function SofiaPublic() {
         body: JSON.stringify({ messages: newMessages }),
       });
       const data = await res.json();
-      const reply = data?.content?.[0]?.text ?? "(Sin respuesta)";
+      const reply = data?.reply ?? "(Sin respuesta)";
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: "assistant", content: "Disculpe, ocurrió un error. Intente de nuevo." }]);

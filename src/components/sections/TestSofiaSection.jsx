@@ -98,8 +98,13 @@ export function TestSofiaSection() {
         body: JSON.stringify({ system: systemPrompt, knowledge_base: knowledge, messages: newMessages }),
       });
       const data = await res.json();
-      const reply = data?.content?.[0]?.text ?? "(Sin respuesta)";
-      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      const reply = data?.reply ?? "(Sin respuesta)";
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: reply,
+        escalated: !!data?.escalated,
+        escalation_reason: data?.escalation_reason ?? null,
+      }]);
     } catch (e) {
       setSendError("Error al conectar con la API. Intenta de nuevo.");
     } finally {
@@ -209,7 +214,24 @@ export function TestSofiaSection() {
                 marginBottom: 12,
               }}>
                 {msg.role === "assistant" && <div style={avatarStyle}>S</div>}
-                <div style={bubbleStyle(msg.role === "user")}>{msg.content}</div>
+                <div>
+                  <div style={bubbleStyle(msg.role === "user")}>{msg.content}</div>
+                  {msg.role === "assistant" && msg.escalated && (
+                    <div style={{
+                      marginTop: 6,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      color: "#a45b00",
+                      background: "#fdf0d5",
+                      border: "1px solid #f0d29a",
+                      borderRadius: 8,
+                      padding: "5px 10px",
+                      display: "inline-block",
+                    }}>
+                      ⚠ Escalado{msg.escalation_reason ? `: ${msg.escalation_reason}` : ""}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
 
