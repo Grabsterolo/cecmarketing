@@ -3,14 +3,7 @@
 // only needs the same VITE_SOFIA_SECRET already used for /api/chat.
 export async function onRequestPost({ request, env }) {
   if (request.headers.get("x-sofia-secret") !== env.SOFIA_CHAT_SECRET) {
-    return new Response(JSON.stringify({ // TEST OVERRIDE: revert before commit
-      error: "Unauthorized",
-      debug: {
-        hasHeader: !!request.headers.get("x-sofia-secret"),
-        hasEnvSecret: !!env.SOFIA_CHAT_SECRET,
-        hasCleanupSecret: !!env.CLEANUP_TRIGGER_SECRET,
-      },
-    }), {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "content-type": "application/json" },
     });
