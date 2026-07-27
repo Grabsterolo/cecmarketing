@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { MessageCircle, Sparkles } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 
 const SOURCE_DOT_COLORS = {
-  meta:      SOURCE_COLORS.meta,
-  google:    "#4285F4",
-  analytics: "#EA4335",
-  sofia:     SOURCE_COLORS.sofia,
+  meta:  SOURCE_COLORS.meta,
+  sofia: SOURCE_COLORS.sofia,
 };
 
 function ActiveBadge({ active }) {
@@ -30,10 +27,6 @@ export function DashboardHome({ profile, setActive }) {
   const isMobile = useIsMobile();
   const [metaData, setMetaData] = useState(null);
   const [metaLoading, setMetaLoading] = useState(true);
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(true);
-  const [googleData, setGoogleData] = useState(null);
-  const [googleLoading, setGoogleLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -43,25 +36,9 @@ export function DashboardHome({ profile, setActive }) {
       .finally(() => setMetaLoading(false));
   }, []);
 
-  useEffect(() => {
-    fetch("/api/analytics-metrics")
-      .then(r => r.json())
-      .then(data => { if (!data.error) setAnalyticsData(data); })
-      .catch(() => {})
-      .finally(() => setAnalyticsLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/google-ads-metrics")
-      .then(r => r.json())
-      .then(data => { if (!data.error) setGoogleData(data); })
-      .catch(() => {})
-      .finally(() => setGoogleLoading(false));
-  }, []);
-
-  const totalInvestment = (metaLoading || googleLoading)
+  const totalInvestment = metaLoading
     ? "..."
-    : `$${(parseFloat(metaData?.totals?.spend || 0) + parseFloat(googleData?.totals?.cost || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+    : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
   const bestCampaign = metaData?.campaigns
     ?.filter(c => parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0) > 0)
@@ -71,28 +48,14 @@ export function DashboardHome({ profile, setActive }) {
       return cplA - cplB;
     })?.[0];
 
-  const bestGoogle = googleData?.campaigns
-    ?.filter(c => c.conversions > 0 && c.costPerConv > 0)
-    ?.sort((a, b) => a.costPerConv - b.costPerConv)?.[0];
-
-  const metaPct = metaData && googleData
-    ? Math.round((parseFloat(metaData.totals.spend) /
-        (parseFloat(metaData.totals.spend) + parseFloat(googleData.totals.cost))) * 100)
-    : null;
-
-  const gastoData = [
-    { nombre: "Meta Ads",    gasto: parseFloat(metaData?.totals?.spend || 0),  color: "#1877F2" },
-    { nombre: "Google Ads",  gasto: parseFloat(googleData?.totals?.cost || 0),  color: "#4285F4" },
-  ];
-
   const pasos = [
     {
       color: "#1877F2",
       label: "INVERSIÓN PUBLICITARIA",
-      numero: (metaLoading || googleLoading)
+      numero: metaLoading
         ? "..."
-        : `$${(parseFloat(metaData?.totals?.spend || 0) + parseFloat(googleData?.totals?.cost || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      desc: "Meta Ads + Google Ads este mes",
+        : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      desc: "Meta Ads este mes",
       barra: 100,
     },
     {
@@ -141,33 +104,27 @@ export function DashboardHome({ profile, setActive }) {
       <Card style={{ background: COLORS.green, border: "none" }}>
         <div style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
+          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
           gap: isMobile ? 24 : 0,
         }}>
           {[
             {
               label: "INVERSIÓN TOTAL",
               value: totalInvestment,
-              sub: "Meta Ads + Google Ads este mes",
+              sub: "Meta Ads este mes",
               border: !isMobile,
             },
             {
               label: "LEADS GENERADOS",
               value: metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`,
               sub: "Contactos desde Meta Ads",
-              border: !isMobile,
-            },
-            {
-              label: "USUARIOS EN EL SITIO",
-              value: analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0"),
-              sub: "Visitantes en cec.cr este mes",
               border: false,
             },
           ].map((kpi, i) => (
             <div key={i} style={{
               padding: isMobile ? 0 : "0 24px",
               paddingLeft: i === 0 ? 0 : undefined,
-              paddingRight: i === 2 ? 0 : undefined,
+              paddingRight: i === 1 ? 0 : undefined,
               borderRight: kpi.border ? "1px solid rgba(255,255,255,0.12)" : "none",
             }}>
               <p style={{ margin: "0 0 6px", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, color: "rgba(255,255,255,0.6)", fontFamily: "'Manrope', sans-serif" }}>
@@ -224,15 +181,14 @@ export function DashboardHome({ profile, setActive }) {
             </div>
           ))}
 
-          {metaPct !== null && (
+          {metaData?.totals?.leads > 0 && (
             <div style={{
               background: "rgba(201,162,78,0.08)", border: "1px solid rgba(201,162,78,0.2)",
               borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 8,
               padding: "10px 14px", marginTop: 16,
               fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6,
             }}>
-              ✦ El {metaPct}% de la inversión está en Meta Ads y el {100 - metaPct}% en Google Ads.
-              {metaData?.totals?.leads > 0 && ` Cada lead de Meta cuesta $${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}.`}
+              ✦ Cada lead de Meta Ads cuesta ${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)} en promedio este mes.
             </div>
           )}
         </Card>
@@ -264,56 +220,6 @@ export function DashboardHome({ profile, setActive }) {
             )}
           </Card>
 
-          {/* Mejor campaña Google */}
-          <Card>
-            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-              Mejor campaña Google
-            </p>
-            {googleLoading ? (
-              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando...</p>
-            ) : bestGoogle ? (
-              <>
-                <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1.4 }}>
-                  {bestGoogle.name.length > 22 ? bestGoogle.name.substring(0, 22) + "..." : bestGoogle.name}
-                </p>
-                <p style={{ margin: "0 0 2px", fontSize: 28, fontWeight: 700, color: "#4285F4", fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
-                  {`$${bestGoogle.costPerConv.toFixed(2)}`}
-                </p>
-                <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-                  Costo por conversión
-                </p>
-              </>
-            ) : (
-              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sin datos</p>
-            )}
-          </Card>
-
-          {/* Distribución del gasto */}
-          <Card>
-            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-              Distribución del gasto
-            </p>
-            <ResponsiveContainer width="100%" height={80}>
-              <BarChart data={gastoData} layout="vertical" margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
-                <XAxis type="number" hide />
-                <YAxis
-                  type="category" dataKey="nombre" width={80}
-                  tick={{ fontSize: 11, fontFamily: "'Manrope', sans-serif", fill: COLORS.textMuted }}
-                  axisLine={false} tickLine={false}
-                />
-                <Tooltip
-                  formatter={(v) => [`$${parseFloat(v).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, "Gasto"]}
-                  contentStyle={{ fontFamily: "'Manrope', sans-serif", fontSize: 12, borderRadius: 8, border: `1px solid ${COLORS.border}` }}
-                />
-                <Bar dataKey="gasto" radius={[0, 4, 4, 0]}>
-                  {gastoData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-
         </div>
       </div>
 
@@ -327,7 +233,7 @@ export function DashboardHome({ profile, setActive }) {
           </p>
 
           {/* Meta Ads */}
-          <div style={sourceRowStyle}>
+          <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: SOURCE_COLORS.meta, flexShrink: 0 }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Meta Ads</span>
@@ -338,30 +244,6 @@ export function DashboardHome({ profile, setActive }) {
               : "—"))}
             {metricCell("Leads", metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`)}
             <div style={{ textAlign: "right" }}><ActiveBadge active={!!metaData} /></div>
-          </div>
-
-          {/* Google Ads */}
-          <div style={sourceRowStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4285F4", flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Google Ads</span>
-            </div>
-            {metricCell("Gasto", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
-            {metricCell("Conversiones", googleLoading ? "..." : `${Math.round(googleData?.totals?.conversions || 0)}`)}
-            {metricCell("Costo / conv.", googleLoading ? "..." : `$${parseFloat(googleData?.totals?.costPerConv || 0).toFixed(2)}`)}
-            <div style={{ textAlign: "right" }}><ActiveBadge active={!!googleData} /></div>
-          </div>
-
-          {/* Google Analytics */}
-          <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EA4335", flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Sitio Web</span>
-            </div>
-            {metricCell("Usuarios", analyticsLoading ? "..." : (analyticsData?.totals?.users?.toLocaleString() || "0"))}
-            {metricCell("Sesiones", analyticsLoading ? "..." : (analyticsData?.totals?.sessions?.toLocaleString() || "0"))}
-            {metricCell("País principal", analyticsLoading ? "..." : (analyticsData?.topCountries?.[0]?.country || "—"))}
-            <div style={{ textAlign: "right" }}><ActiveBadge active={!!analyticsData} /></div>
           </div>
         </Card>
 
@@ -406,7 +288,7 @@ export function DashboardHome({ profile, setActive }) {
             </span>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6, maxWidth: 520 }}>
-            Sofía genera un reporte diario con observaciones y recomendaciones basadas en Meta Ads, Google Ads y Analytics.
+            Sofía genera un reporte diario con observaciones y recomendaciones basadas en Meta Ads.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>

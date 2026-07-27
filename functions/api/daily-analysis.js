@@ -1,26 +1,12 @@
 export async function onRequestPost({ env }) {
   const {
-    GA_CLIENT_ID, GA_CLIENT_SECRET, GA_REFRESH_TOKEN,
     META_ACCESS_TOKEN, META_AD_ACCOUNT_ID,
     SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
     ANTHROPIC_API_KEY,
   } = env;
 
   try {
-    // 1. Obtener Access Token de Google
-    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: GA_CLIENT_ID,
-        client_secret: GA_CLIENT_SECRET,
-        refresh_token: GA_REFRESH_TOKEN,
-        grant_type: "refresh_token",
-      }),
-    });
-    const { access_token } = await tokenRes.json();
-
-    // 2. Obtener datos de Meta Ads
+    // 1. Obtener datos de Meta Ads
     // Costa Rica es UTC-6
     const now = new Date();
     const crOffset = -6 * 60;
@@ -57,77 +43,10 @@ export async function onRequestPost({ env }) {
       impressions: metaCampaigns.reduce((s, c) => s + c.impressions, 0),
     };
 
-    // 3. Obtener datos de Google Ads (Sheet más reciente)
-    const driveRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name+contains+'Rendimiento+de+Campa%C3%B1a'+and+mimeType='application/vnd.google-apps.spreadsheet'&orderBy=createdTime+desc&pageSize=1&fields=files(id,name)`,
-      { headers: { "Authorization": `Bearer ${access_token}` } }
-    );
-    const driveData = await driveRes.json();
-    const sheetId = driveData.files?.[0]?.id;
-
-    let googleCampaigns = [];
-    let googleTotals = { cost: 0, conversions: 0, clicks: 0 };
-
-    if (sheetId) {
-      const sheetRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/Hoja 1!A1:O100`,
-        { headers: { "Authorization": `Bearer ${access_token}` } }
-      );
-      const sheetData = await sheetRes.json();
-      const rows = (sheetData.values || []).slice(1)
-        .filter(r => r[1] === "Enabled" && parseFloat(r[8] || 0) > 0);
-
-      googleCampaigns = rows.map(r => ({
-        name: (r[0] || "").replace(/^[☀-⛿●️\s]+/u, "").trim(),
-        cost: parseFloat(r[8] || 0),
-        clicks: parseInt(r[3] || 0),
-        conversions: Math.round(parseFloat(r[11] || 0) * 10) / 10,
-        costPerConv: parseFloat(r[13] || 0),
-      }));
-
-      googleTotals = {
-        cost: googleCampaigns.reduce((s, c) => s + c.cost, 0).toFixed(2),
-        conversions: Math.round(googleCampaigns.reduce((s, c) => s + c.conversions, 0)),
-        clicks: googleCampaigns.reduce((s, c) => s + c.clicks, 0),
-      };
-    }
-
-    // 4. Obtener datos de Analytics
-    const gaRes = await fetch(
-      `https://analyticsdata.googleapis.com/v1beta/properties/353073837:runReport`,
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          dateRanges: [{ startDate: firstDay, endDate: "today" }],
-          dimensions: [{ name: "country" }],
-          metrics: [
-            { name: "activeUsers" },
-            { name: "sessions" },
-            { name: "keyEvents" },
-          ],
-          limit: 5,
-        }),
-      }
-    );
-    const gaData = await gaRes.json();
-    const gaRows = gaData.rows || [];
-    const analyticsTotals = {
-      users: gaRows.reduce((s, r) => s + parseInt(r.metricValues[0].value || 0), 0),
-      sessions: gaRows.reduce((s, r) => s + parseInt(r.metricValues[1].value || 0), 0),
-      keyEvents: gaRows.reduce((s, r) => s + parseInt(r.metricValues[2].value || 0), 0),
-      topCountry: gaRows[0]?.dimensionValues[0]?.value || "Costa Rica",
-    };
-
-    // 5. Construir contexto para Sofía
+    // 2. Construir contexto para Sofía
     const dataContext = {
       fecha: lastDay,
       meta: { totals: metaTotals, campaigns: metaCampaigns },
-      google: { totals: googleTotals, campaigns: googleCampaigns },
-      analytics: analyticsTotals,
     };
 
     const prompt = `Eres Sofía, la asistente de marketing del Centro Europeo de Cirugía (CEC) en Costa Rica.
@@ -143,25 +62,12 @@ META ADS:
 Detalle por campaña:
 ${metaCampaigns.map(c => `  • ${c.name}: gasto $${c.spend.toFixed(2)}, leads: ${c.leads}${c.cpl ? ", CPL: $" + c.cpl : " (sin leads)"}`).join('\n')}
 
-GOOGLE ADS:
-- Gasto total: $${googleTotals.cost}
-- Conversiones: ${googleTotals.conversions}
-- Clics: ${googleTotals.clicks}
-- Costo por conversión: ${googleTotals.conversions > 0 ? "$" + (parseFloat(googleTotals.cost) / googleTotals.conversions).toFixed(2) : "N/A"}
-
-SITIO WEB (cec.cr):
-- Usuarios activos: ${analyticsTotals.users.toLocaleString()}
-- Sesiones: ${analyticsTotals.sessions.toLocaleString()}
-- Eventos clave: ${analyticsTotals.keyEvents}
-- País principal: ${analyticsTotals.topCountry}
-
 Genera un análisis en español de los resultados del día analizado.
 Escribe como si le explicaras los resultados a alguien del equipo del CEC que no es experto en marketing digital — usa lenguaje simple, directo y humano. Evita tecnicismos. Cuando uses un número, explica qué significa.
 
 Por ejemplo:
 - En lugar de "CPL de $3.81" → "cada persona que dejó sus datos costó $3.81"
 - En lugar de "tasa de conversión del 8.8%" → "de cada 100 personas que vieron el anuncio, casi 9 hicieron clic"
-- En lugar de "eventos clave" → "personas que hicieron algo importante en el sitio como llenar un formulario"
 
 IMPORTANTE: En las secciones de 'LO QUE ESTÁ FUNCIONANDO' y 'ÁREAS DE ATENCIÓN', SIEMPRE menciona el nombre exacto de cada campaña relevante. Nunca digas 'algunas campañas' o 'varias campañas' sin nombrarlas. Si hay campañas que gastaron sin generar leads, lista cada una por nombre.
 
@@ -186,7 +92,7 @@ Con EXACTAMENTE este formato, sin agregar títulos extra, sin ##, sin --:
 
 Máximo 250 palabras. Empieza directamente con **RESUMEN DEL DÍA**.`;
 
-    // 6. Llamar a Claude API
+    // 3. Llamar a Claude API
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -211,7 +117,7 @@ Máximo 250 palabras. Empieza directamente con **RESUMEN DEL DÍA**.`;
     const claudeData = await claudeRes.json();
     const analysis = claudeData.content?.[0]?.text || "No se pudo generar el análisis.";
 
-    // 7. Guardar en Supabase
+    // 4. Guardar en Supabase
     const supaRes = await fetch(`${SUPABASE_URL}/rest/v1/sofia_recommendations`, {
       method: "POST",
       headers: {

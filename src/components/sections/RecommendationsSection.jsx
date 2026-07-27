@@ -108,7 +108,7 @@ export function RecommendationsSection() {
             Análisis de Sofía
           </h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-            Reporte diario generado con datos reales de Meta, Google Ads y Analytics
+            Reporte diario generado con datos reales de Meta Ads
           </p>
         </div>
         <button
