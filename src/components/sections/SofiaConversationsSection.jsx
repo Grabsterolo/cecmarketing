@@ -56,13 +56,13 @@ function InactivityCleanupCard() {
           "content-type": "application/json",
           "x-sofia-secret": import.meta.env.VITE_SOFIA_SECRET,
         },
-        body: JSON.stringify({ dryRun }),
+        body: JSON.stringify({ dryRun, mode: "closeDirect" }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "Error desconocido");
       setResult(data);
       if (dryRun) setDryRunDone(true);
-      else setDryRunDone(false); // fuerza un nuevo dry-run antes de volver a avisar
+      else setDryRunDone(false); // fuerza un nuevo dry-run antes de volver a cerrar
     } catch (err) {
       setError(err.message);
     } finally {
@@ -75,10 +75,9 @@ function InactivityCleanupCard() {
     <Card>
       <CardHeader title="Limpieza de buzón por inactividad" />
       <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "-8px 0 14px", lineHeight: 1.6 }}>
-        Revisa conversaciones (de Sofía y de los asesores) sin actividad hace 24 horas o más,
-        les avisa que la conversación se va a cerrar, y las cierra en Zenvia si nadie responde
-        en las siguientes 2 horas. Primero corre la revisión sin enviar nada — luego confirma
-        para avisar de verdad.
+        Revisa conversaciones (de Sofía y de los asesores) sin actividad hace 24 horas o más y las
+        cierra directamente en Zenvia — sin mandarles ningún mensaje de WhatsApp. Primero corre la
+        revisión sin cerrar nada — luego confirma para cerrar de verdad.
       </p>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -88,13 +87,13 @@ function InactivityCleanupCard() {
           style={{ ...btnSubmitStyle, flex: "none", display: "flex", alignItems: "center", gap: 8, opacity: scanning ? 0.7 : 1 }}
         >
           <Search size={15} />
-          {scanning ? "Revisando..." : "Revisar (sin enviar nada)"}
+          {scanning ? "Revisando..." : "Revisar (sin cerrar nada)"}
         </button>
 
         {dryRunDone && result?.wouldWarn > 0 && (
           <button
             onClick={() => {
-              if (!window.confirm(`Se avisará a ${result.wouldWarn} conversación(es) inactiva(s) por WhatsApp. ¿Confirmas?`)) return;
+              if (!window.confirm(`Se cerrarán ${result.wouldWarn} conversación(es) inactiva(s) en Zenvia, sin mandarles ningún mensaje. ¿Confirmas?`)) return;
               runScan(false);
             }}
             disabled={scanning || warning}
@@ -104,7 +103,7 @@ function InactivityCleanupCard() {
             }}
           >
             <Send size={15} />
-            {warning ? "Avisando..." : `Confirmar y avisar a ${result.wouldWarn}`}
+            {warning ? "Cerrando..." : `Confirmar y cerrar ${result.wouldWarn}`}
           </button>
         )}
       </div>
@@ -122,16 +121,16 @@ function InactivityCleanupCard() {
           {result.alreadyPendingClosure > 0 && (
             <p style={{ fontSize: 12.5, color: COLORS.textMuted, margin: 0 }}>
               <Trash2 size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />
-              {result.alreadyPendingClosure} ya avisadas anteriormente, pendientes de cierre automático — no se tocan de nuevo.
+              {result.alreadyPendingClosure} ya en proceso de cierre — no se tocan de nuevo.
             </p>
           )}
           {result.dryRun ? (
             <p style={{ fontSize: 13, color: COLORS.gold, margin: 0, fontWeight: 600 }}>
-              Se avisaría a {result.wouldWarn} conversación(es) nuevas. Nada se envió todavía.
+              Se cerrarían {result.wouldWarn} conversación(es) nuevas. Nada se cerró todavía.
             </p>
           ) : (
             <p style={{ fontSize: 13, color: COLORS.green, margin: 0, fontWeight: 600 }}>
-              Aviso enviado a {result.warned} conversación(es). Se cerrarán automáticamente en 2h si nadie responde.
+              Cerrando {result.warned} conversación(es) en segundo plano — con este volumen puede tardar varios minutos. No se envía ningún mensaje.
             </p>
           )}
         </div>
