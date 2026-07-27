@@ -30,7 +30,6 @@ const avatarStyle = {
 
 function bubbleStyle(isUser) {
   return {
-    maxWidth: "72%",
     padding: "10px 14px",
     borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
     background: isUser ? COLORS.green : COLORS.panelAlt,
@@ -214,7 +213,7 @@ export function TestSofiaSection() {
                 marginBottom: 12,
               }}>
                 {msg.role === "assistant" && <div style={avatarStyle}>S</div>}
-                <div>
+                <div style={{ minWidth: 0, maxWidth: "72%" }}>
                   <div style={bubbleStyle(msg.role === "user")}>{msg.content}</div>
                   {msg.role === "assistant" && msg.escalated && (
                     <div style={{
