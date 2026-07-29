@@ -4,6 +4,7 @@ import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
+import { supabase } from "../../lib/supabase.js";
 
 const SOURCE_DOT_COLORS = {
   meta:  SOURCE_COLORS.meta,
@@ -27,6 +28,8 @@ export function DashboardHome({ profile, setActive }) {
   const isMobile = useIsMobile();
   const [metaData, setMetaData] = useState(null);
   const [metaLoading, setMetaLoading] = useState(true);
+  const [sofiaStats, setSofiaStats] = useState(null);
+  const [sofiaLoading, setSofiaLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -34,6 +37,27 @@ export function DashboardHome({ profile, setActive }) {
       .then(data => { if (!data.error) setMetaData(data); })
       .catch(() => {})
       .finally(() => setMetaLoading(false));
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSofiaStats() {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const [{ count: total }, { count: escalated }] = await Promise.all([
+        supabase.from("sofia_conversations").select("*", { count: "exact", head: true })
+          .gte("created_at", startOfMonth.toISOString()),
+        supabase.from("sofia_conversations").select("*", { count: "exact", head: true })
+          .gte("created_at", startOfMonth.toISOString()).eq("escalated", true),
+      ]);
+      if (!mounted) return;
+      setSofiaStats({ total: total || 0, escalated: escalated || 0 });
+      setSofiaLoading(false);
+    }
+    loadSofiaStats();
+    return () => { mounted = false; };
   }, []);
 
   const totalInvestment = metaLoading
@@ -73,12 +97,18 @@ export function DashboardHome({ profile, setActive }) {
       barra: 60,
     },
     {
-      color: COLORS.border,
+      color: SOURCE_COLORS.sofia,
       label: "CONVERSACIONES SOFÍA",
-      numero: "—",
-      desc: "Disponible cuando Sofía esté en WhatsApp",
-      barra: 0,
-      muted: true,
+      numero: sofiaLoading ? "..." : `${sofiaStats?.total || 0}`,
+      desc: sofiaLoading
+        ? "Cargando..."
+        : sofiaStats?.total > 0
+          ? `${Math.round((sofiaStats.escalated / sofiaStats.total) * 100)}% escaladas a un asesor`
+          : "Sin conversaciones este mes todavía",
+      // A diferencia de las barras de arriba (que sí forman un embudo real
+      // de Meta Ads), Sofía es un canal aparte — la barra aquí representa el
+      // % de conversaciones escaladas a un asesor, no un paso del embudo.
+      barra: sofiaLoading || !sofiaStats?.total ? 0 : Math.round((sofiaStats.escalated / sofiaStats.total) * 100),
     },
   ];
 

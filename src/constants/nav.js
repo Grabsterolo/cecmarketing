@@ -1,5 +1,5 @@
 import {
-  Home, LayoutDashboard, MessageCircle, Sparkles, Settings2, FlaskConical, ShieldCheck,
+  Home, LayoutDashboard, Sparkles, Settings2, FlaskConical, ShieldCheck,
 } from "lucide-react";
 
 export const ROTATING_WORDS = ["campañas", "conversaciones", "métricas", "recomendaciones", "tu marca"];
@@ -9,7 +9,6 @@ export const ROTATING_WORDS = ["campañas", "conversaciones", "métricas", "reco
 export const NAV_ITEMS = [
   { key: "inicio", label: "Inicio", icon: Home },
   { key: "metricas", label: "Métricas", icon: LayoutDashboard },
-  { key: "sofia", label: "Conversaciones de Sofía", icon: MessageCircle },
   { key: "recomendaciones", label: "Recomendaciones", icon: Sparkles },
   { key: "auditoria-sofia", label: "Auditoría de Sofía", icon: ShieldCheck },
   { key: "configurar-sofia", label: "Configurar a Sofía", icon: Settings2 },

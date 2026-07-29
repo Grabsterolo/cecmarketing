@@ -1,9 +1,109 @@
 import React, { useEffect, useState } from "react";
-import { Settings2, Save, Check, Zap, Power } from "lucide-react";
+import { Settings2, Save, Check, Zap, Power, Search, Send, Trash2 } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card, CardHeader } from "../ui/Card.jsx";
 import { taStyle, btnSubmitStyle } from "../../styles/forms.js";
 import { supabase } from "../../lib/supabase.js";
+
+function InactivityCleanupCard() {
+  const [scanning, setScanning] = useState(false);
+  const [warning, setWarning] = useState(false);
+  const [result, setResult] = useState(null);
+  const [dryRunDone, setDryRunDone] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function runScan(dryRun) {
+    setError(null);
+    dryRun ? setScanning(true) : setWarning(true);
+    try {
+      const res = await fetch("/api/cleanup-scan", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-sofia-secret": import.meta.env.VITE_SOFIA_SECRET,
+        },
+        body: JSON.stringify({ dryRun, mode: "closeDirect" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Error desconocido");
+      setResult(data);
+      if (dryRun) setDryRunDone(true);
+      else setDryRunDone(false); // fuerza un nuevo dry-run antes de volver a cerrar
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setScanning(false);
+      setWarning(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader title="Limpieza de buzón por inactividad" />
+      <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "-8px 0 14px", lineHeight: 1.6 }}>
+        Revisa conversaciones (de Sofía y de los asesores) sin actividad hace 24 horas o más y las
+        cierra directamente en Zenvia — sin mandarles ningún mensaje de WhatsApp. Primero corre la
+        revisión sin cerrar nada — luego confirma para cerrar de verdad.
+      </p>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button
+          onClick={() => runScan(true)}
+          disabled={scanning || warning}
+          style={{ ...btnSubmitStyle, flex: "none", display: "flex", alignItems: "center", gap: 8, opacity: scanning ? 0.7 : 1 }}
+        >
+          <Search size={15} />
+          {scanning ? "Revisando..." : "Revisar (sin cerrar nada)"}
+        </button>
+
+        {dryRunDone && result?.wouldWarn > 0 && (
+          <button
+            onClick={() => {
+              if (!window.confirm(`Se cerrarán ${result.wouldWarn} conversación(es) inactiva(s) en Zenvia, sin mandarles ningún mensaje. ¿Confirmas?`)) return;
+              runScan(false);
+            }}
+            disabled={scanning || warning}
+            style={{
+              ...btnSubmitStyle, flex: "none", display: "flex", alignItems: "center", gap: 8,
+              background: COLORS.gold, opacity: warning ? 0.7 : 1,
+            }}
+          >
+            <Send size={15} />
+            {warning ? "Cerrando..." : `Confirmar y cerrar ${result.wouldWarn}`}
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <p style={{ fontSize: 13, color: "#e07070", marginTop: 12, lineHeight: 1.6 }}>{error}</p>
+      )}
+
+      {result && !error && (
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ fontSize: 13, color: COLORS.text, margin: 0 }}>
+            <strong>{result.openConversations}</strong> conversaciones abiertas revisadas —{" "}
+            <strong>{result.staleConversations}</strong> sin actividad hace 24h+.
+          </p>
+          {result.alreadyPendingClosure > 0 && (
+            <p style={{ fontSize: 12.5, color: COLORS.textMuted, margin: 0 }}>
+              <Trash2 size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />
+              {result.alreadyPendingClosure} ya en proceso de cierre — no se tocan de nuevo.
+            </p>
+          )}
+          {result.dryRun ? (
+            <p style={{ fontSize: 13, color: COLORS.gold, margin: 0, fontWeight: 600 }}>
+              Se cerrarían {result.wouldWarn} conversación(es) nuevas. Nada se cerró todavía.
+            </p>
+          ) : (
+            <p style={{ fontSize: 13, color: COLORS.green, margin: 0, fontWeight: 600 }}>
+              Cerrando {result.warned} conversación(es) en segundo plano — con este volumen puede tardar varios minutos. No se envía ningún mensaje.
+            </p>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 const TEXTAREA_STYLE = {
   ...taStyle,
@@ -194,6 +294,8 @@ export function ConfigureSofiaSection() {
               }} />
             </button>
           </Card>
+
+          <InactivityCleanupCard />
 
           <EditableBlock
             title="Reglas de comportamiento"
