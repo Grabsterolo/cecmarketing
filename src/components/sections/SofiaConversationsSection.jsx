@@ -25,8 +25,8 @@ function ConversationRow({ conv }) {
         </div>
         <p style={{ fontSize: 13, color: COLORS.textMuted, margin: "4px 0 0", lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {conv.escalated && conv.escalation_reason ? conv.escalation_reason :
-           conv.sentiment === "hot_lead" ? "Lead caliente — solicitó agendar" :
            conv.derived_to_appointment ? "Mostró interés en agendar" :
+           conv.last_message ? conv.last_message :
            `${conv.message_count || 0} mensajes`}
         </p>
         {conv.escalated && (

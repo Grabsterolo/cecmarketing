@@ -8,6 +8,7 @@ import { DashboardHome } from "./sections/DashboardHome.jsx";
 import { MetricsSection } from "./sections/MetricsSection.jsx";
 import { SofiaConversationsSection } from "./sections/SofiaConversationsSection.jsx";
 import { RecommendationsSection } from "./sections/RecommendationsSection.jsx";
+import { SofiaAuditSection } from "./sections/SofiaAuditSection.jsx";
 import { ConfigureSofiaSection } from "./sections/ConfigureSofiaSection.jsx";
 import { TestSofiaSection } from "./sections/TestSofiaSection.jsx";
 
@@ -16,6 +17,7 @@ const SECTION_TITLES = {
   metricas: "Métricas",
   sofia: "Conversaciones de Sofía",
   recomendaciones: "Recomendaciones",
+  "auditoria-sofia": "Auditoría de Sofía",
   "configurar-sofia": "Configurar a Sofía",
   "probar-sofia": "Probar a Sofía",
 };
@@ -69,6 +71,7 @@ export function Dashboard({ onLogout, profile }) {
       case "metricas": return <MetricsSection />;
       case "sofia": return <SofiaConversationsSection />;
       case "recomendaciones": return <RecommendationsSection />;
+      case "auditoria-sofia": return <SofiaAuditSection />;
       case "configurar-sofia": return <ConfigureSofiaSection />;
       case "probar-sofia": return <TestSofiaSection />;
       default: return null;
