@@ -97,6 +97,12 @@ export function TestSofiaSection() {
         body: JSON.stringify({ system: systemPrompt, knowledge_base: knowledge, messages: newMessages }),
       });
       const data = await res.json();
+      if (!res.ok || data?.error) {
+        setSendError(data?.error || "Error al generar la respuesta. Intenta de nuevo.");
+        setMessages(prev => prev.slice(0, -1)); // quita el mensaje del usuario que no se pudo procesar
+        setInput(text);
+        return;
+      }
       const reply = data?.reply ?? "(Sin respuesta)";
       setMessages(prev => [...prev, {
         role: "assistant",

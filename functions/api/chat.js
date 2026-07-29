@@ -116,6 +116,13 @@ export async function onRequestPost({ request, env }) {
   }
 
   // 4. Llamar a Claude con prompt caching habilitado
+  // Los mensajes que vienen del cliente (TestSofiaSection) traen campos
+  // propios de la UI (escalated, escalation_reason) pegados a los turnos del
+  // asistente para pintar el badge de escalación — la API de Claude rechaza
+  // con 400 cualquier campo que no sea role/content ("Extra inputs are not
+  // permitted"), así que hay que limpiarlos antes de reenviarlos.
+  const claudeMessages = messages.map(({ role, content }) => ({ role, content }));
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -128,11 +135,18 @@ export async function onRequestPost({ request, env }) {
       model: "claude-sonnet-4-6",
       max_tokens: 1024,
       system: systemBlocks,
-      messages,
+      messages: claudeMessages,
     }),
   });
 
   const data = await response.json();
+
+  if (!response.ok) {
+    return new Response(JSON.stringify({ error: data?.error?.message || "Error llamando a Claude", detail: data }), {
+      status: response.status,
+      headers: { "content-type": "application/json" },
+    });
+  }
 
   const rawText = data?.content?.[0]?.text ?? "";
   const escalationMatch = rawText.match(/\[ESCALAR:?\s*([^\]]*)\]/i);
