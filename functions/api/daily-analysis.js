@@ -171,7 +171,7 @@ Máximo 250 palabras. Empieza directamente con **RESUMEN DEL DÍA**.`;
     const analysis = claudeData.content?.[0]?.text || "No se pudo generar el análisis.";
 
     // 4. Guardar en Supabase
-    const supaRes = await fetch(`${SUPABASE_URL}/rest/v1/sofia_recommendations`, {
+    const supaRes = await fetch(`${SUPABASE_URL}/rest/v1/sofia_recommendations?on_conflict=date`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
