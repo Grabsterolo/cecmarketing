@@ -81,25 +81,39 @@ export async function onRequestPost({ env }) {
 
     const chunks = splitIntoChunks(row.knowledge_base);
 
-    // 3. Generar embeddings con OpenAI
-    const chunksWithEmbeddings = await Promise.all(
-      chunks.map(async chunk => {
-        const embedRes = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${OPENAI_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "text-embedding-3-small",
-            input: chunk.content,
-          }),
-        });
-        if (!embedRes.ok) throw new Error(`OpenAI error en "${chunk.category}": ${embedRes.status}`);
-        const embedData = await embedRes.json();
-        return { ...chunk, embedding: embedData.data[0].embedding };
-      })
-    );
+    // 3. Generar embeddings con OpenAI — una sola llamada con todos los
+    // chunks como array de input. Antes esto era un fetch por chunk en
+    // paralelo (Promise.all), que con ~79+ chunks choca contra el límite de
+    // subrequests por invocación de Cloudflare ("Too many subrequests by
+    // single Worker invocation"). La API de embeddings acepta `input` como
+    // array (hasta 2048 elementos), así que un solo request resuelve todos.
+    const embedRes = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "text-embedding-3-small",
+        input: chunks.map(c => c.content),
+      }),
+    });
+    if (!embedRes.ok) throw new Error(`OpenAI error generando embeddings: ${embedRes.status}`);
+    const embedData = await embedRes.json();
+    // embedData.data trae un `index` por elemento — se usa para emparejar
+    // con el chunk correcto en vez de asumir que el orden se preserva.
+    const chunksWithEmbeddings = chunks.map((chunk, i) => ({
+      ...chunk,
+      embedding: embedData.data.find(d => d.index === i)?.embedding,
+    }));
+
+    // Verificar antes de borrar nada — si a algún chunk le falta el
+    // embedding, mejor abortar aquí que borrar los chunks existentes y
+    // dejar la tabla con filas rotas.
+    const missing = chunksWithEmbeddings.filter(c => !c.embedding);
+    if (missing.length > 0) {
+      throw new Error(`Faltan embeddings para ${missing.length} chunk(s): ${missing.map(c => c.category).join(", ")}`);
+    }
 
     // 4. Borrar chunks existentes
     const deleteRes = await fetch(
