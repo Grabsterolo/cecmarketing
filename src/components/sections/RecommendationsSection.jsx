@@ -53,6 +53,47 @@ const renderAnalysis = (text) => {
   });
 };
 
+const statCell = (label, value) => (
+  <div>
+    <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>{label}</p>
+    <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>{value}</p>
+  </div>
+);
+
+function MetaVsSofiaSnapshot({ snapshot }) {
+  const meta = snapshot?.meta?.totals;
+  const sofia = snapshot?.sofia;
+  if (!meta || !sofia) return null;
+
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div>
+          <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 700, color: "#1877F2", fontFamily: "'Manrope', sans-serif", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Meta Ads
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {statCell("Gasto", `$${parseFloat(meta.spend || 0).toFixed(2)}`)}
+            {statCell("Leads", meta.leads || 0)}
+          </div>
+        </div>
+        <div style={{ borderLeft: `1px solid ${COLORS.border}`, paddingLeft: 20 }}>
+          <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+            Conversaciones de Sofía
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {statCell("Total", sofia.total || 0)}
+            {statCell("Escaladas", sofia.total > 0 ? `${sofia.escalationRate}%` : "—")}
+          </div>
+          <p style={{ margin: "10px 0 0", fontSize: 11.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+            {(sofia.byChannel?.facebook || 0)} desde redes sociales · {(sofia.byChannel?.whatsapp || 0)} desde WhatsApp directo
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function RecommendationsSection() {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +149,7 @@ export function RecommendationsSection() {
             Análisis de Sofía
           </h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-            Reporte diario generado con datos reales de Meta Ads
+            Reporte diario que cruza Meta Ads con las conversaciones reales de Sofía
           </p>
         </div>
         <button
@@ -146,21 +187,24 @@ export function RecommendationsSection() {
 
       {/* Análisis de hoy */}
       {!loading && today && (
-        <Card style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", textTransform: "capitalize" }}>
-              {formatDate(today.date)}
-            </p>
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-              background: "rgba(201,162,78,0.12)", color: COLORS.gold,
-              fontFamily: "'Manrope', sans-serif",
-            }}>
-              Hoy
-            </span>
-          </div>
-          <div>{renderAnalysis(today.analysis)}</div>
-        </Card>
+        <>
+          <MetaVsSofiaSnapshot snapshot={today.data_snapshot} />
+          <Card style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", textTransform: "capitalize" }}>
+                {formatDate(today.date)}
+              </p>
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                background: "rgba(201,162,78,0.12)", color: COLORS.gold,
+                fontFamily: "'Manrope', sans-serif",
+              }}>
+                Hoy
+              </span>
+            </div>
+            <div>{renderAnalysis(today.analysis)}</div>
+          </Card>
+        </>
       )}
 
       {/* Sin análisis */}

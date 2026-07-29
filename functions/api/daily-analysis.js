@@ -43,14 +43,58 @@ export async function onRequestPost({ env }) {
       impressions: metaCampaigns.reduce((s, c) => s + c.impressions, 0),
     };
 
+    // 1b. Conversaciones de Sofía del mismo día (mismo rango CR → UTC que
+    // usa Meta arriba), para poder cruzar gasto/alcance publicitario contra
+    // conversaciones reales — no solo mirar cada dato por separado.
+    const dayStartUTC = new Date(`${lastDay}T00:00:00-06:00`);
+    const dayEndUTC = new Date(dayStartUTC.getTime() + 24 * 60 * 60 * 1000);
+
+    const sofiaRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/sofia_conversations?select=channel,escalated,sentiment,procedure_interest` +
+      `&created_at=gte.${dayStartUTC.toISOString()}&created_at=lt.${dayEndUTC.toISOString()}`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      }
+    );
+    const sofiaRows = sofiaRes.ok ? await sofiaRes.json() : [];
+
+    const byChannel = sofiaRows.reduce((acc, r) => {
+      const ch = r.channel || "whatsapp";
+      acc[ch] = (acc[ch] || 0) + 1;
+      return acc;
+    }, {});
+    const escalatedCount = sofiaRows.filter(r => r.escalated).length;
+    const sentimentCounts = sofiaRows.reduce((acc, r) => {
+      if (r.sentiment) acc[r.sentiment] = (acc[r.sentiment] || 0) + 1;
+      return acc;
+    }, {});
+    const topicCounts = sofiaRows.reduce((acc, r) => {
+      if (r.procedure_interest) acc[r.procedure_interest] = (acc[r.procedure_interest] || 0) + 1;
+      return acc;
+    }, {});
+    const topTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    const sofiaTotals = {
+      total: sofiaRows.length,
+      byChannel,
+      escalated: escalatedCount,
+      escalationRate: sofiaRows.length > 0 ? Math.round((escalatedCount / sofiaRows.length) * 100) : 0,
+      sentimentCounts,
+      topTopics: topTopics.map(([topic, count]) => ({ topic, count })),
+    };
+
     // 2. Construir contexto para Sofía
     const dataContext = {
       fecha: lastDay,
       meta: { totals: metaTotals, campaigns: metaCampaigns },
+      sofia: sofiaTotals,
     };
 
     const prompt = `Eres Sofía, la asistente de marketing del Centro Europeo de Cirugía (CEC) en Costa Rica.
-Analiza los datos de marketing del mes actual y genera un reporte ejecutivo breve, claro y accionable.
+Analiza los datos de marketing Y de conversaciones del día, y genera un reporte ejecutivo breve, claro y accionable que cruce ambas fuentes — no las trates como dos temas separados.
 
 DATOS DE AYER (${lastDay}):
 
@@ -62,12 +106,21 @@ META ADS:
 Detalle por campaña:
 ${metaCampaigns.map(c => `  • ${c.name}: gasto $${c.spend.toFixed(2)}, leads: ${c.leads}${c.cpl ? ", CPL: $" + c.cpl : " (sin leads)"}`).join('\n')}
 
+CONVERSACIONES DE SOFÍA (mismo día):
+- Total: ${sofiaTotals.total}
+- Por canal: WhatsApp: ${sofiaTotals.byChannel.whatsapp || 0}, Facebook/Instagram (redes sociales): ${sofiaTotals.byChannel.facebook || 0}
+- Escaladas a un asesor humano: ${sofiaTotals.escalated} (${sofiaTotals.escalationRate}%)
+- Sentimiento del paciente: positivo ${sofiaTotals.sentimentCounts.positivo || 0}, neutral ${sofiaTotals.sentimentCounts.neutral || 0}, negativo ${sofiaTotals.sentimentCounts.negativo || 0}
+- Temas más consultados: ${sofiaTotals.topTopics.length > 0 ? sofiaTotals.topTopics.map(t => `${t.topic} (${t.count})`).join(", ") : "sin datos suficientes"}
+
 Genera un análisis en español de los resultados del día analizado.
 Escribe como si le explicaras los resultados a alguien del equipo del CEC que no es experto en marketing digital — usa lenguaje simple, directo y humano. Evita tecnicismos. Cuando uses un número, explica qué significa.
 
 Por ejemplo:
 - En lugar de "CPL de $3.81" → "cada persona que dejó sus datos costó $3.81"
 - En lugar de "tasa de conversión del 8.8%" → "de cada 100 personas que vieron el anuncio, casi 9 hicieron clic"
+
+IMPORTANTE — cruza los dos datasets, no los reportes por separado: ¿el gasto y alcance en redes sociales (Meta/Facebook) se está traduciendo en conversaciones reales por WhatsApp/Facebook? ¿qué canal trae más conversaciones? ¿la gente que le escribe a Sofía muestra intención real de compra (tasa de escalación, sentimiento, temas de precio)? Si un día con más gasto en Meta no tuvo más conversaciones (o viceversa), decilo explícitamente — es justo el tipo de desconexión que el equipo necesita ver.
 
 IMPORTANTE: En las secciones de 'LO QUE ESTÁ FUNCIONANDO' y 'ÁREAS DE ATENCIÓN', SIEMPRE menciona el nombre exacto de cada campaña relevante. Nunca digas 'algunas campañas' o 'varias campañas' sin nombrarlas. Si hay campañas que gastaron sin generar leads, lista cada una por nombre.
 
@@ -107,7 +160,7 @@ Máximo 250 palabras. Empieza directamente con **RESUMEN DEL DÍA**.`;
         system: [
           {
             type: "text",
-            text: "Eres Sofía, la asistente de marketing del Centro Europeo de Cirugía (CEC) en Costa Rica. Generas reportes ejecutivos diarios de marketing en lenguaje simple y accionable para el equipo del CEC.",
+            text: "Eres Sofía, la asistente de marketing del Centro Europeo de Cirugía (CEC) en Costa Rica. Generas reportes ejecutivos diarios que cruzan el desempeño de Meta Ads con las conversaciones reales de pacientes, en lenguaje simple y accionable para el equipo del CEC.",
             cache_control: { type: "ephemeral" },
           }
         ],
