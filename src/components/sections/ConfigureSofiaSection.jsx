@@ -5,35 +5,69 @@ import { Card, CardHeader } from "../ui/Card.jsx";
 import { taStyle, btnSubmitStyle } from "../../styles/forms.js";
 import { supabase } from "../../lib/supabase.js";
 
+// El Worker procesa como máximo ~20 conversaciones por invocación (límite
+// de subrequests de Cloudflare — ver comentario en scanAndWarn). Cuando
+// quedan más, el response trae batchRemaining > 0 y hay que volver a
+// llamar. Cada lote cierra en segundo plano (ctx.waitUntil) después de
+// responder, así que hay que esperar antes del siguiente para no
+// re-seleccionar los mismos prospectos que todavía no terminaron.
+const BATCH_WAIT_MS = 15000;
+const MAX_BATCHES = 15; // tope de seguridad — ~300 conversaciones por corrida
+
 function InactivityCleanupCard() {
   const [scanning, setScanning] = useState(false);
   const [warning, setWarning] = useState(false);
   const [result, setResult] = useState(null);
   const [dryRunDone, setDryRunDone] = useState(false);
   const [error, setError] = useState(null);
+  const [batchProgress, setBatchProgress] = useState(null);
+
+  async function callCleanupScan(dryRun) {
+    const res = await fetch("/api/cleanup-scan", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-sofia-secret": import.meta.env.VITE_SOFIA_SECRET,
+      },
+      body: JSON.stringify({ dryRun, mode: "closeDirect" }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || "Error desconocido");
+    return data;
+  }
 
   async function runScan(dryRun) {
     setError(null);
+    setBatchProgress(null);
     dryRun ? setScanning(true) : setWarning(true);
     try {
-      const res = await fetch("/api/cleanup-scan", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-sofia-secret": import.meta.env.VITE_SOFIA_SECRET,
-        },
-        body: JSON.stringify({ dryRun, mode: "closeDirect" }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Error desconocido");
-      setResult(data);
-      if (dryRun) setDryRunDone(true);
-      else setDryRunDone(false); // fuerza un nuevo dry-run antes de volver a cerrar
+      if (dryRun) {
+        const data = await callCleanupScan(true);
+        setResult(data);
+        setDryRunDone(true);
+        return;
+      }
+
+      // Cierre real — repite en lotes hasta que no quede nada pendiente.
+      let closedTotal = 0;
+      let data = await callCleanupScan(false);
+      closedTotal += data.warned;
+
+      for (let i = 0; data.batchRemaining > 0 && i < MAX_BATCHES; i++) {
+        setBatchProgress({ closed: closedTotal, remaining: data.batchRemaining });
+        await new Promise((r) => setTimeout(r, BATCH_WAIT_MS));
+        data = await callCleanupScan(false);
+        closedTotal += data.warned;
+      }
+
+      setResult({ ...data, warned: closedTotal });
+      setDryRunDone(false); // fuerza un nuevo dry-run antes de volver a cerrar
     } catch (err) {
       setError(err.message);
     } finally {
       setScanning(false);
       setWarning(false);
+      setBatchProgress(null);
     }
   }
 
@@ -69,7 +103,9 @@ function InactivityCleanupCard() {
             }}
           >
             <Send size={15} />
-            {warning ? "Cerrando..." : `Confirmar y cerrar ${result.wouldWarn}`}
+            {warning
+              ? (batchProgress ? `Cerrando... (${batchProgress.closed} listas, ${batchProgress.remaining} en cola)` : "Cerrando...")
+              : `Confirmar y cerrar ${result.wouldWarn}`}
           </button>
         )}
       </div>
@@ -96,7 +132,9 @@ function InactivityCleanupCard() {
             </p>
           ) : (
             <p style={{ fontSize: 13, color: COLORS.green, margin: 0, fontWeight: 600 }}>
-              Cerrando {result.warned} conversación(es) en segundo plano — con este volumen puede tardar varios minutos. No se envía ningún mensaje.
+              {result.warned} conversación(es) cerradas
+              {result.batchRemaining > 0 ? ` — quedaron ${result.batchRemaining} pendientes, dale clic a "Revisar" y "Confirmar" de nuevo para terminarlas.` : "."}
+              {" "}No se envía ningún mensaje.
             </p>
           )}
         </div>
