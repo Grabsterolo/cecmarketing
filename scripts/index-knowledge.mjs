@@ -66,7 +66,12 @@ async function fetchKnowledgeBase() {
 // ── 2. Dividir en chunks granulares (un chunk por procedimiento) ─────────────
 function splitIntoChunks(text) {
   const chunks = [];
-  const isProcedureLine = l => /^\*\*[^*]+\*\*$/.test(l.trim());
+  // Antes exigía que la línea fuera ÚNICAMENTE "**Nombre**" — descartaba
+  // silenciosamente líneas como "**Nombre** — $precio (detalle)", que es el
+  // formato real de la sección de promociones. Mantenido en sincro con
+  // functions/api/reindex.js — misma lógica ahí.
+  const isProcedureLine = l => /^\*\*[^*]+\*\*/.test(l.trim());
+  const procedureLineName = l => l.trim().match(/^\*\*([^*]+)\*\*/)?.[1]?.trim() ?? null;
   const sections = text.split(/(?=^## )/m).map(s => s.trim()).filter(Boolean);
 
   for (const section of sections) {
@@ -99,23 +104,38 @@ function splitIntoChunks(text) {
 
       let currentName = null;
       let currentLines = [];
+      let preambleLines = [];
 
       for (const line of subLines) {
         if (isProcedureLine(line)) {
           if (currentName) {
             const content = currentLines.join("\n").trim();
             if (content.length >= 80) chunks.push({ category: currentName, content });
+          } else {
+            const preambleContent = preambleLines.join("\n").trim();
+            if (preambleContent.length >= 80) {
+              const category = subHeader.replace(/^#+\s*/, "").trim();
+              chunks.push({ category, content: preambleContent });
+            }
           }
-          currentName = line.trim().replace(/\*\*/g, "");
+          currentName = procedureLineName(line);
           currentLines = [subHeader, line];
         } else if (currentName) {
           currentLines.push(line);
+        } else {
+          preambleLines.push(line);
         }
       }
 
       if (currentName) {
         const content = currentLines.join("\n").trim();
         if (content.length >= 80) chunks.push({ category: currentName, content });
+      } else {
+        const preambleContent = preambleLines.join("\n").trim();
+        if (preambleContent.length >= 80) {
+          const category = subHeader.replace(/^#+\s*/, "").trim();
+          chunks.push({ category, content: preambleContent });
+        }
       }
     }
   }

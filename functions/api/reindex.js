@@ -1,4 +1,11 @@
-export async function onRequestPost({ env }) {
+export async function onRequestPost({ request, env }) {
+  if (request.headers.get("x-sofia-secret") !== env.SOFIA_CHAT_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
   const SUPABASE_URL = env.SUPABASE_URL;
   const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
   const OPENAI_KEY = env.OPENAI_API_KEY;
@@ -20,7 +27,13 @@ export async function onRequestPost({ env }) {
     if (!row?.knowledge_base) throw new Error("knowledge_base está vacío.");
 
     // 2. Dividir en chunks granulares (un chunk por procedimiento)
-    const isProcedureLine = l => /^\*\*[^*]+\*\*$/.test(l.trim());
+    // Antes exigía que la línea fuera ÚNICAMENTE "**Nombre**" (nada más en
+    // la línea). Eso descartaba silenciosamente cualquier línea con formato
+    // "**Nombre** — $precio (detalle)" — exactamente el formato real de la
+    // sección de promociones, que por eso nunca llegó a los embeddings.
+    // Ahora basta con que la línea EMPIECE con un segmento en negrita.
+    const isProcedureLine = l => /^\*\*[^*]+\*\*/.test(l.trim());
+    const procedureLineName = l => l.trim().match(/^\*\*([^*]+)\*\*/)?.[1]?.trim() ?? null;
 
     function splitIntoChunks(text) {
       const result = [];
@@ -55,23 +68,43 @@ export async function onRequestPost({ env }) {
 
           let currentName = null;
           let currentLines = [];
+          // Líneas vistas antes del primer "**Nombre**" de esta subsección.
+          // Antes se descartaban en silencio (el `else if (currentName)` de
+          // abajo solo acumulaba una vez que currentName ya existía) — eso
+          // es lo que se comió el texto introductorio de "Precios y
+          // promociones" antes de la primera oferta con nombre.
+          let preambleLines = [];
 
           for (const line of subLines) {
             if (isProcedureLine(line)) {
               if (currentName) {
                 const content = currentLines.join("\n").trim();
                 if (content.length >= 80) result.push({ category: currentName, content });
+              } else {
+                const preambleContent = preambleLines.join("\n").trim();
+                if (preambleContent.length >= 80) {
+                  const category = subHeader.replace(/^#+\s*/, "").trim();
+                  result.push({ category, content: preambleContent });
+                }
               }
-              currentName = line.trim().replace(/\*\*/g, "");
+              currentName = procedureLineName(line);
               currentLines = [subHeader, line];
             } else if (currentName) {
               currentLines.push(line);
+            } else {
+              preambleLines.push(line);
             }
           }
 
           if (currentName) {
             const content = currentLines.join("\n").trim();
             if (content.length >= 80) result.push({ category: currentName, content });
+          } else {
+            const preambleContent = preambleLines.join("\n").trim();
+            if (preambleContent.length >= 80) {
+              const category = subHeader.replace(/^#+\s*/, "").trim();
+              result.push({ category, content: preambleContent });
+            }
           }
         }
       }
