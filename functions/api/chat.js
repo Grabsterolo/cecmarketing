@@ -99,10 +99,15 @@ export async function onRequestPost({ request, env }) {
   const horaContexto = `\n\nCONTEXTO DE HORA: Son las ${hourCR}:${String(nowCR.getUTCMinutes()).padStart(2,'0')} en Costa Rica. Es de ${franjaHoraria}.`;
 
   // 3. Construir system prompt con caching
+  // El texto que cambia cada minuto (horaContexto) NO puede ir pegado al
+  // bloque marcado con cache_control — un solo carácter distinto invalida
+  // todo el prefijo cacheado. Por eso va en su propio bloque al final, sin
+  // cache_control, y los bloques estáticos (system, y la base de
+  // conocimiento completa cuando no hay RAG) van cacheados por separado.
   const systemBlocks = [
     {
       type: "text",
-      text: system + horaContexto,
+      text: system,
       cache_control: { type: "ephemeral" },
     },
   ];
@@ -121,6 +126,8 @@ export async function onRequestPost({ request, env }) {
     });
   }
 
+  systemBlocks.push({ type: "text", text: horaContexto.trim() });
+
   // 4. Llamar a Claude con prompt caching habilitado
   // Los mensajes que vienen del cliente (TestSofiaSection) traen campos
   // propios de la UI (escalated, escalation_reason) pegados a los turnos del
@@ -134,7 +141,6 @@ export async function onRequestPost({ request, env }) {
     headers: {
       "x-api-key": env.ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
-      "anthropic-beta": "prompt-caching-2024-07-31",
       "content-type": "application/json",
     },
     body: JSON.stringify({
