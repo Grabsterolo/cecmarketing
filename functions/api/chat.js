@@ -108,7 +108,7 @@ export async function onRequestPost({ request, env }) {
     {
       type: "text",
       text: system,
-      cache_control: { type: "ephemeral" },
+      cache_control: { type: "ephemeral", ttl: "1h" },
     },
   ];
 
@@ -122,7 +122,7 @@ export async function onRequestPost({ request, env }) {
     systemBlocks.push({
       type: "text",
       text: "INFORMACIÓN COMPLETA DEL CEC (usa solo lo relevante para la pregunta del paciente):\n\n" + knowledge_base,
-      cache_control: { type: "ephemeral" },
+      cache_control: { type: "ephemeral", ttl: "1h" },
     });
   }
 
@@ -141,6 +141,7 @@ export async function onRequestPost({ request, env }) {
     headers: {
       "x-api-key": env.ANTHROPIC_API_KEY,
       "anthropic-version": "2023-06-01",
+      "anthropic-beta": "extended-cache-ttl-2025-04-11",
       "content-type": "application/json",
     },
     body: JSON.stringify({
