@@ -30,6 +30,8 @@ export function DashboardHome({ profile, setActive }) {
   const [metaLoading, setMetaLoading] = useState(true);
   const [sofiaStats, setSofiaStats] = useState(null);
   const [sofiaLoading, setSofiaLoading] = useState(true);
+  const [conversionStats, setConversionStats] = useState(null);
+  const [conversionLoading, setConversionLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -37,6 +39,14 @@ export function DashboardHome({ profile, setActive }) {
       .then(data => { if (!data.error) setMetaData(data); })
       .catch(() => {})
       .finally(() => setMetaLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/conversion-stats")
+      .then(r => r.json())
+      .then(data => { if (!data.error) setConversionStats(data); })
+      .catch(() => {})
+      .finally(() => setConversionLoading(false));
   }, []);
 
   useEffect(() => {
@@ -247,6 +257,29 @@ export function DashboardHome({ profile, setActive }) {
               </>
             ) : (
               <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sin campañas con leads</p>
+            )}
+          </Card>
+
+          {/* Conversión de Sofía */}
+          <Card>
+            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+              Conversión de Sofía
+            </p>
+            {conversionLoading ? (
+              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando datos...</p>
+            ) : conversionStats?.conversionRate != null ? (
+              <>
+                <p style={{ margin: "0 0 2px", fontSize: 28, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                  {Math.round(conversionStats.conversionRate * 100)}%
+                </p>
+                <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                  {conversionStats.converted} de {conversionStats.conversationsWithProspectId} conversaciones terminaron en venta
+                </p>
+              </>
+            ) : (
+              <p style={{ margin: 0, fontSize: 12.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
+                Sin datos todavía — este número solo cuenta conversaciones nuevas desde el 5 de agosto de 2026.
+              </p>
             )}
           </Card>
 
