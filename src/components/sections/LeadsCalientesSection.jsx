@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Flame, ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { COLORS } from "../../constants/colors.js";
+import { Flame, ExternalLink, Copy, Check, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { Badge } from "../ui/Badge.jsx";
 import { ErrorBanner } from "../ui/ErrorBanner.jsx";
@@ -90,6 +90,17 @@ function computeScore(conv) {
   );
 }
 
+// Mismo desglose que computeScore, pero como lista para mostrar en el
+// detalle de cada tarjeta (de dónde salen los puntos del score total).
+function scoreBreakdown(conv) {
+  return [
+    { label: "Procedimiento", value: procedureScore(conv.procedure_interest), max: 40, color: COLORS.green },
+    { label: "Sentimiento", value: sentimentScore(conv.sentiment), max: 25, color: COLORS.gold },
+    { label: "Interacción", value: engagementScore(conv.message_count), max: 15, color: SOURCE_COLORS.organico },
+    { label: "Recencia", value: recencyScore(conv.created_at), max: 20, color: COLORS.textMuted },
+  ];
+}
+
 function scoreTier(score) {
   if (score >= 70) return "alto";
   if (score >= 40) return "medio";
@@ -118,6 +129,13 @@ function formatRelative(dateStr) {
   if (hours < 24) return `hace ${hours}h`;
   const days = Math.floor(hours / 24);
   return `hace ${days}d`;
+}
+
+function formatFullDate(dateStr) {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleString("es-CR", {
+    day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+  });
 }
 
 function ScoreBadge({ score }) {
@@ -257,17 +275,59 @@ function PaginationControls({ page, totalPages, onPrev, onNext }) {
   );
 }
 
+function ScoreBar({ label, value, max, color }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ width: 100, fontSize: 12, color: COLORS.text, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
+        {label}
+      </span>
+      <div style={{ flex: 1, height: 6, background: COLORS.border, borderRadius: 3 }}>
+        <div style={{ width: `${(value / max) * 100}%`, height: "100%", background: color, borderRadius: 3 }} />
+      </div>
+      <span style={{ width: 44, textAlign: "right", fontSize: 12, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
+        {value}/{max}
+      </span>
+    </div>
+  );
+}
+
+function MetaField({ label, value }) {
+  return (
+    <div>
+      <p style={{ margin: "0 0 2px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>{label}</p>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>{value}</p>
+    </div>
+  );
+}
+
+// Preview de una línea para la tarjeta colapsada: prioriza el motivo de
+// escalación (es lo más accionable) y si no hay, cae al resumen de
+// mensajes/canal que antes se mostraba siempre.
+function previewLine(conv) {
+  if (conv.escalation_reason) return conv.escalation_reason;
+  return `${conv.message_count || 0} mensajes · ${conv.channel || "whatsapp"} · ${conv.phone_number || "sin número"}`;
+}
+
 function LeadRow({ conv }) {
+  const [open, setOpen] = useState(false);
   const score = computeScore(conv);
+  const breakdown = scoreBreakdown(conv);
   const sentimentInfo = SENTIMENT_LABEL[normalize(conv.sentiment)];
 
   return (
-    <Card style={{ marginBottom: 12 }}>
-      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+    <Card style={{ marginBottom: 12, padding: 0, overflow: "hidden" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex", gap: 16, alignItems: "center", width: "100%",
+          background: "none", border: "none", cursor: "pointer", textAlign: "left",
+          padding: 16, font: "inherit",
+        }}
+      >
         <ScoreBadge score={score} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
               {conv.procedure_interest || "Procedimiento no especificado"}
             </p>
@@ -286,19 +346,51 @@ function LeadRow({ conv }) {
             </span>
           </div>
 
-          {conv.escalation_reason && (
-            <p style={{ margin: "0 0 4px", fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
-              {conv.escalation_reason}
-            </p>
-          )}
-
-          <p style={{ margin: 0, fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-            {conv.message_count || 0} mensajes · {conv.channel || "whatsapp"} · {conv.phone_number || "sin número"}
+          <p style={{
+            margin: 0, fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {previewLine(conv)}
           </p>
         </div>
 
-        <ZenviaButton prospectId={conv.prospect_id} phoneNumber={conv.phone_number} />
-      </div>
+        <ChevronDown
+          size={18} color={COLORS.textMuted} style={{ flexShrink: 0, transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+
+      {open && (
+        <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+            <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+              Cómo se calculó el score
+            </p>
+            {breakdown.map((b) => <ScoreBar key={b.label} {...b} />)}
+          </div>
+
+          {conv.escalation_reason && (
+            <div>
+              <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                Motivo de escalación
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
+                {conv.escalation_reason}
+              </p>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <MetaField label="Mensajes" value={conv.message_count || 0} />
+            <MetaField label="Canal" value={conv.channel || "whatsapp"} />
+            <MetaField label="Teléfono" value={conv.phone_number || "sin número"} />
+            <MetaField label="Recibido" value={formatFullDate(conv.created_at)} />
+          </div>
+
+          <div>
+            <ZenviaButton prospectId={conv.prospect_id} phoneNumber={conv.phone_number} />
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
