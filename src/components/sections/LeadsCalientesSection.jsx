@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Flame, ExternalLink, Copy, Check, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
-import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
+import { COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { Badge } from "../ui/Badge.jsx";
 import { ErrorBanner } from "../ui/ErrorBanner.jsx";
@@ -90,17 +90,6 @@ function computeScore(conv) {
   );
 }
 
-// Mismo desglose que computeScore, pero como lista para mostrar en el
-// detalle de cada tarjeta (de dónde salen los puntos del score total).
-function scoreBreakdown(conv) {
-  return [
-    { label: "Procedimiento", value: procedureScore(conv.procedure_interest), max: 40, color: COLORS.green },
-    { label: "Sentimiento", value: sentimentScore(conv.sentiment), max: 25, color: COLORS.gold },
-    { label: "Interacción", value: engagementScore(conv.message_count), max: 15, color: SOURCE_COLORS.organico },
-    { label: "Recencia", value: recencyScore(conv.created_at), max: 20, color: COLORS.textMuted },
-  ];
-}
-
 function scoreTier(score) {
   if (score >= 70) return "alto";
   if (score >= 40) return "medio";
@@ -129,6 +118,53 @@ function formatRelative(dateStr) {
   if (hours < 24) return `hace ${hours}h`;
   const days = Math.floor(hours / 24);
   return `hace ${days}d`;
+}
+
+// Traduce cada criterio del score a algo que un asesor entienda de un
+// vistazo (tier + explicación en palabras), en vez de puntos crudos —
+// los puntos (0-40, 0-25...) no le dicen nada a quien va a contactar al
+// lead, pero "Cirugía — mayor valor" sí.
+function procedureCriterion(procedureInterest) {
+  const p = normalize(procedureInterest);
+  if (CIRUGIA_KEYWORDS.some((kw) => p.includes(kw))) {
+    return { tier: "alto", detail: "Cirugía — mayor valor" };
+  }
+  if (!p || GENERICO_KEYWORDS.some((kw) => p.includes(kw))) {
+    return { tier: "bajo", detail: "Sin especificar" };
+  }
+  return { tier: "medio", detail: "Tratamiento no quirúrgico" };
+}
+
+function sentimentCriterion(sentiment) {
+  const s = normalize(sentiment);
+  if (s === "positivo") return { tier: "alto", detail: "Positivo" };
+  if (s === "negativo") return { tier: "bajo", detail: "Negativo" };
+  return { tier: "medio", detail: "Neutral" };
+}
+
+function engagementCriterion(messageCount) {
+  const n = messageCount || 0;
+  if (n >= 5) return { tier: "alto", detail: `${n} mensajes — conversación activa` };
+  if (n >= 2) return { tier: "medio", detail: `${n} mensajes` };
+  return { tier: "bajo", detail: `${n} mensaje${n === 1 ? "" : "s"} — poco intercambio` };
+}
+
+function recencyCriterion(createdAt) {
+  const rel = formatRelative(createdAt) || "sin fecha";
+  if (!createdAt) return { tier: "bajo", detail: rel };
+  const hoursAgo = (Date.now() - new Date(createdAt).getTime()) / 36e5;
+  if (hoursAgo < 6) return { tier: "alto", detail: rel };
+  if (hoursAgo < 24) return { tier: "medio", detail: rel };
+  return { tier: "bajo", detail: rel };
+}
+
+function scoreCriteria(conv) {
+  return [
+    { label: "Procedimiento", ...procedureCriterion(conv.procedure_interest) },
+    { label: "Sentimiento", ...sentimentCriterion(conv.sentiment) },
+    { label: "Interacción", ...engagementCriterion(conv.message_count) },
+    { label: "Última actividad", ...recencyCriterion(conv.created_at) },
+  ];
 }
 
 function formatFullDate(dateStr) {
@@ -275,18 +311,23 @@ function PaginationControls({ page, totalPages, onPrev, onNext }) {
   );
 }
 
-function ScoreBar({ label, value, max, color }) {
+const TIER_LABEL = { alto: "Alto", medio: "Medio", bajo: "Bajo" };
+
+function CriterionRow({ label, detail, tier }) {
+  const style = TIER_STYLES[tier];
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ width: 100, fontSize: 12, color: COLORS.text, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
-        {label}
-      </span>
-      <div style={{ flex: 1, height: 6, background: COLORS.border, borderRadius: 3 }}>
-        <div style={{ width: `${(value / max) * 100}%`, height: "100%", background: color, borderRadius: 3 }} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ margin: "0 0 1px", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+          {label}
+        </p>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
+          {detail}
+        </p>
       </div>
-      <span style={{ width: 44, textAlign: "right", fontSize: 12, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
-        {value}/{max}
-      </span>
+      <Badge style={{ background: style.bg, color: style.fg, flexShrink: 0 }}>
+        {TIER_LABEL[tier]}
+      </Badge>
     </div>
   );
 }
@@ -311,17 +352,24 @@ function previewLine(conv) {
 function LeadRow({ conv }) {
   const [open, setOpen] = useState(false);
   const score = computeScore(conv);
-  const breakdown = scoreBreakdown(conv);
+  const criteria = scoreCriteria(conv);
   const sentimentInfo = SENTIMENT_LABEL[normalize(conv.sentiment)];
+
+  function toggle() { setOpen((v) => !v); }
+  function toggleOnKey(e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+  }
 
   return (
     <Card style={{ marginBottom: 12, padding: 0, overflow: "hidden" }}>
-      <button
-        onClick={() => setOpen((v) => !v)}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={toggle}
+        onKeyDown={toggleOnKey}
         style={{
           display: "flex", gap: 16, alignItems: "center", width: "100%",
-          background: "none", border: "none", cursor: "pointer", textAlign: "left",
-          padding: 16, font: "inherit",
+          cursor: "pointer", padding: 16,
         }}
       >
         <ScoreBadge score={score} />
@@ -354,18 +402,22 @@ function LeadRow({ conv }) {
           </p>
         </div>
 
+        <div onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+          <ZenviaButton prospectId={conv.prospect_id} phoneNumber={conv.phone_number} />
+        </div>
+
         <ChevronDown
           size={18} color={COLORS.textMuted} style={{ flexShrink: 0, transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "none" }}
         />
-      </button>
+      </div>
 
       {open && (
         <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
             <p style={{ margin: "0 0 2px", fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-              Cómo se calculó el score
+              Por qué este score
             </p>
-            {breakdown.map((b) => <ScoreBar key={b.label} {...b} />)}
+            {criteria.map((c) => <CriterionRow key={c.label} {...c} />)}
           </div>
 
           {conv.escalation_reason && (
@@ -384,10 +436,6 @@ function LeadRow({ conv }) {
             <MetaField label="Canal" value={conv.channel || "whatsapp"} />
             <MetaField label="Teléfono" value={conv.phone_number || "sin número"} />
             <MetaField label="Recibido" value={formatFullDate(conv.created_at)} />
-          </div>
-
-          <div>
-            <ZenviaButton prospectId={conv.prospect_id} phoneNumber={conv.phone_number} />
           </div>
         </div>
       )}

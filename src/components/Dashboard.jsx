@@ -122,7 +122,7 @@ export function Dashboard({ onLogout, profile }) {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: COLORS.bg, fontFamily: "'Manrope', sans-serif" }}>
       <Sidebar active={active} setActive={navigate} onLogout={onLogout} />
-      <div style={{ flex: 1, padding: "36px 40px", ...dashboardInAnim }} onAnimationEnd={() => setDashDone(true)}>
+      <div style={{ flex: 1, minWidth: 0, padding: "36px 40px", ...dashboardInAnim }} onAnimationEnd={() => setDashDone(true)}>
         <div style={{ marginBottom: 32 }}>
           <p style={{ fontSize: 11, letterSpacing: "0.25em", color: COLORS.gold, marginBottom: 6, textTransform: "uppercase", fontWeight: 600 }}>
             {getDateLabel()}
