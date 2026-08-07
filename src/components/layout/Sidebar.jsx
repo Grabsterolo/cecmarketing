@@ -10,8 +10,8 @@ function NavButton({ item, isActive, onClick, mobile }) {
     <button
       onClick={onClick}
       style={{
-        display: "flex", alignItems: "center", gap: mobile ? 14 : 12,
-        padding: mobile ? "12px 14px" : "10px 14px",
+        display: "flex", alignItems: "center", gap: mobile ? 16 : 12,
+        padding: mobile ? "12px 16px" : "8px 16px",
         borderRadius: mobile ? 10 : 8, border: "none",
         cursor: "pointer", textAlign: "left",
         fontSize: mobile ? 15 : 14, fontWeight: 600,
@@ -79,7 +79,7 @@ export function MobileDrawer({ open, onClose, active, setActive, onLogout }) {
           <button
             onClick={() => { onClose(); onLogout(); }}
             style={{
-              display: "flex", alignItems: "center", gap: 14, padding: "12px 14px",
+              display: "flex", alignItems: "center", gap: 16, padding: "12px 16px",
               borderRadius: 10, border: "none", background: "transparent",
               color: COLORS.sidebarMuted, fontSize: 15, fontWeight: 600,
               fontFamily: "'Manrope', sans-serif", cursor: "pointer", width: "100%",
@@ -115,7 +115,7 @@ export function Sidebar({ active, setActive, onLogout }) {
       background: SIDEBAR_BG,
       display: "flex",
       flexDirection: "column",
-      padding: "28px 14px",
+      padding: "28px 16px",
       height: "100vh",
       boxSizing: "border-box",
       position: "sticky",
@@ -146,7 +146,7 @@ export function Sidebar({ active, setActive, onLogout }) {
           onClick={onLogout}
           style={{
             display: "flex", alignItems: "center", gap: 12,
-            padding: "10px 14px", borderRadius: 8, border: "none",
+            padding: "8px 16px", borderRadius: 8, border: "none",
             background: "transparent", color: COLORS.sidebarMuted,
             fontSize: 14, fontWeight: 600,
             fontFamily: "'Manrope', sans-serif",

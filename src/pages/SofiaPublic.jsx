@@ -96,7 +96,7 @@ export function SofiaPublic() {
         </div>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%",
-            background: "#4ade80" }} />
+            background: COLORS.online }} />
           <span style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>En línea</span>
         </div>
       </div>
@@ -117,7 +117,7 @@ export function SofiaPublic() {
               background: COLORS.green,
               color: "white",
               borderRadius: "16px 16px 4px 16px",
-              padding: "10px 14px",
+              padding: "8px 16px",
               maxWidth: "80%",
               fontSize: isMobile ? 14 : 13,
               lineHeight: 1.5,
@@ -131,7 +131,7 @@ export function SofiaPublic() {
               background: "white",
               color: COLORS.text,
               borderRadius: "16px 16px 16px 4px",
-              padding: "10px 14px",
+              padding: "8px 16px",
               maxWidth: "80%",
               fontSize: isMobile ? 14 : 13,
               lineHeight: 1.5,
@@ -148,7 +148,7 @@ export function SofiaPublic() {
             alignSelf: "flex-start",
             background: "white",
             borderRadius: "16px 16px 16px 4px",
-            padding: "10px 14px",
+            padding: "8px 16px",
             boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           }}>
             <div style={{ display: "flex", gap: 4, padding: "4px 0" }}>
@@ -168,7 +168,7 @@ export function SofiaPublic() {
       {/* Input */}
       <div style={{
         borderTop: `1px solid ${COLORS.border}`,
-        padding: "10px 12px",
+        padding: "8px 12px",
         display: "flex",
         gap: 8,
         background: "white",
@@ -183,7 +183,7 @@ export function SofiaPublic() {
             flex: 1,
             border: `1px solid ${COLORS.border}`,
             borderRadius: 24,
-            padding: "10px 16px",
+            padding: "8px 16px",
             fontSize: 16,
             fontFamily: "'Manrope', sans-serif",
             outline: "none",

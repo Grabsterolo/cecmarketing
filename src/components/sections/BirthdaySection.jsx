@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { Cake, Send } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card, CardHeader } from "../ui/Card.jsx";
+import { Button } from "../ui/Button.jsx";
 
 const inputStyle = {
   width: "100%",
   border: `1px solid ${COLORS.border}`,
   borderRadius: 10,
-  padding: "10px 14px",
+  padding: "8px 16px",
   fontFamily: "'Manrope', sans-serif",
-  fontSize: 13.5,
+  fontSize: 14,
   background: COLORS.inputBg,
   color: COLORS.text,
   outline: "none",
@@ -54,7 +55,7 @@ export function BirthdaySection() {
         }}>
           <Cake size={18} color={COLORS.gold} />
         </div>
-        <p style={{ fontSize: 13.5, color: COLORS.textMuted, lineHeight: 1.7, margin: 0 }}>
+        <p style={{ fontSize: 14, color: COLORS.textMuted, lineHeight: 1.7, margin: 0 }}>
           Envía manualmente un mensaje de cumpleaños por WhatsApp a través de Sofía.
           El texto es fijo (la plantilla no personaliza con el nombre). Requiere que
           la plantilla ya esté aprobada por Meta en Zenvia — mientras tanto este botón
@@ -81,26 +82,18 @@ export function BirthdaySection() {
             />
           </div>
 
-          <button
+          <Button
             onClick={handleSend}
             disabled={sending || !phoneNumber.trim()}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              background: COLORS.green, color: "#fff", border: "none", borderRadius: 10,
-              padding: "11px 16px", fontSize: 13.5, fontWeight: 600,
-              fontFamily: "'Manrope', sans-serif",
-              cursor: sending || !phoneNumber.trim() ? "not-allowed" : "pointer",
-              opacity: sending || !phoneNumber.trim() ? 0.5 : 1,
-            }}
           >
             <Send size={15} />
             {sending ? "Enviando..." : "Enviar mensaje de cumpleaños"}
-          </button>
+          </Button>
 
           {result && (
             <p style={{
-              fontSize: 12.5, margin: 0, lineHeight: 1.6,
-              color: result.ok ? COLORS.green : "#e07070",
+              fontSize: 13, margin: 0, lineHeight: 1.6,
+              color: result.ok ? COLORS.green : COLORS.danger,
             }}>
               {result.ok ? "✓ " : "✗ "}{result.message}
             </p>

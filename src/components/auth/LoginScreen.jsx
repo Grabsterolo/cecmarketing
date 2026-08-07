@@ -90,14 +90,14 @@ function LoginForm({ onLogin }) {
         onBlur={e => e.target.style.borderColor = COLORS.border}
       />
       {error && (
-        <p style={{ fontSize: 12, color: "#e07070", marginBottom: 14, marginTop: -10, lineHeight: 1.5 }}>{error}</p>
+        <p style={{ fontSize: 12, color: COLORS.danger, marginBottom: 14, marginTop: -10, lineHeight: 1.5 }}>{error}</p>
       )}
       <button
         type="button" onClick={handleLogin} disabled={loading}
         style={{
           ...anim(460),
           width: "100%", background: `linear-gradient(135deg, ${COLORS.goldSoft}, ${COLORS.gold})`,
-          border: "none", borderRadius: 8, padding: "13px 16px", color: "#FFF",
+          border: "none", borderRadius: 8, padding: "12px 16px", color: "#FFF",
           fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
           letterSpacing: "0.04em", fontFamily: "'Manrope', sans-serif",
           boxShadow: "0 4px 16px rgba(201,162,78,0.4)", transition: "box-shadow 0.2s, transform 0.15s",

@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import { ShieldCheck, Lightbulb } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card, CardHeader } from "../ui/Card.jsx";
+import { Badge } from "../ui/Badge.jsx";
+import { ErrorBanner } from "../ui/ErrorBanner.jsx";
+import { EmptyState } from "../ui/EmptyState.jsx";
+import { SectionHeader } from "../ui/SectionHeader.jsx";
+import { Button } from "../ui/Button.jsx";
 import { supabase } from "../../lib/supabase.js";
 
 const formatDate = (dateStr) => {
@@ -97,42 +102,18 @@ export function SofiaAuditSection() {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-            Auditoría de Sofía
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-            Revisa una muestra de conversaciones reales contra las reglas de Sofía y reporta qué funciona y qué no
-          </p>
-        </div>
-        <button
-          onClick={runAudit}
-          disabled={generating}
-          style={{
-            background: COLORS.green, color: "white", border: "none",
-            borderRadius: 8, padding: "10px 20px", fontSize: 13,
-            fontWeight: 600, fontFamily: "'Manrope', sans-serif",
-            cursor: generating ? "not-allowed" : "pointer",
-            opacity: generating ? 0.7 : 1, flexShrink: 0,
-            display: "flex", alignItems: "center", gap: 8,
-          }}
-        >
-          <ShieldCheck size={15} />
-          {generating ? "Analizando conversaciones..." : "Auditar a Sofía"}
-        </button>
-      </div>
+      <SectionHeader
+        title="Auditoría de Sofía"
+        subtitle="Revisa una muestra de conversaciones reales contra las reglas de Sofía y reporta qué funciona y qué no"
+        action={
+          <Button onClick={runAudit} disabled={generating} style={{ flexShrink: 0 }}>
+            <ShieldCheck size={15} />
+            {generating ? "Analizando conversaciones..." : "Auditar a Sofía"}
+          </Button>
+        }
+      />
 
-      {error && (
-        <div style={{
-          background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)",
-          borderRadius: 8, padding: "10px 14px", fontSize: 13,
-          color: "#dc2626", fontFamily: "'Manrope', sans-serif", marginBottom: 16,
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {loading && (
         <p style={{ textAlign: "center", fontSize: 14, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", padding: "40px 0" }}>
@@ -141,7 +122,7 @@ export function SofiaAuditSection() {
       )}
 
       {generating && (
-        <p style={{ fontSize: 12.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", marginBottom: 16, fontStyle: "italic" }}>
+        <p style={{ fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", marginBottom: 16, fontStyle: "italic" }}>
           Esto puede tardar un poco — Sofía está leyendo una muestra de conversaciones reales y comparándolas contra sus propias reglas.
         </p>
       )}
@@ -153,13 +134,9 @@ export function SofiaAuditSection() {
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", textTransform: "capitalize" }}>
               {formatDate(latest.created_at)} · muestra de {latest.sample_size} conversaciones
             </p>
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-              background: "rgba(201,162,78,0.12)", color: COLORS.gold,
-              fontFamily: "'Manrope', sans-serif",
-            }}>
+            <Badge variant="gold">
               Más reciente
-            </span>
+            </Badge>
           </div>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <AuditBlockCard
@@ -186,25 +163,19 @@ export function SofiaAuditSection() {
 
       {/* Sin auditorías */}
       {!loading && !latest && (
-        <Card>
-          <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <ShieldCheck size={28} color={COLORS.gold} style={{ marginBottom: 12 }} />
-            <p style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 600, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-              Sin auditorías todavía
-            </p>
-            <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
-              Haz clic en "Auditar a Sofía" para revisar una muestra de conversaciones reales contra sus reglas.
-            </p>
-          </div>
-        </Card>
+        <EmptyState
+          icon={<ShieldCheck size={28} color={COLORS.gold} style={{ marginBottom: 12 }} />}
+          title="Sin auditorías todavía"
+          description='Haz clic en "Auditar a Sofía" para revisar una muestra de conversaciones reales contra sus reglas.'
+        />
       )}
 
       {/* Historial */}
       {!loading && previous.length > 0 && (
         <>
-          <p style={{ margin: "8px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+          <h3 style={{ margin: "8px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
             Auditorías anteriores
-          </p>
+          </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {previous.map((audit) => {
               const isExpanded = expandedId === audit.id;

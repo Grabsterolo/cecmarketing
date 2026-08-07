@@ -187,9 +187,9 @@ export function MetricsSection() {
             </p>
 
             {/* Gráfico gasto vs leads */}
-            <p style={{ margin: "24px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            <h3 style={{ margin: "24px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
               Gasto vs Leads por campaña
-            </p>
+            </h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData} barGap={4} barCategoryGap="30%">
                 <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} vertical={false} />

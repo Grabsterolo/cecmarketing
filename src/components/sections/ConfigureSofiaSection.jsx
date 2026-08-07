@@ -111,7 +111,7 @@ function InactivityCleanupCard() {
       </div>
 
       {error && (
-        <p style={{ fontSize: 13, color: "#e07070", marginTop: 12, lineHeight: 1.6 }}>{error}</p>
+        <p style={{ fontSize: 13, color: COLORS.danger, marginTop: 12, lineHeight: 1.6 }}>{error}</p>
       )}
 
       {result && !error && (
@@ -121,7 +121,7 @@ function InactivityCleanupCard() {
             <strong>{result.staleConversations}</strong> sin actividad hace 24h+.
           </p>
           {result.alreadyPendingClosure > 0 && (
-            <p style={{ fontSize: 12.5, color: COLORS.textMuted, margin: 0 }}>
+            <p style={{ fontSize: 13, color: COLORS.textMuted, margin: 0 }}>
               <Trash2 size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />
               {result.alreadyPendingClosure} ya en proceso de cierre — no se tocan de nuevo.
             </p>
@@ -147,7 +147,7 @@ const TEXTAREA_STYLE = {
   ...taStyle,
   minHeight: 360,
   fontFamily: "'SF Mono', 'Monaco', monospace",
-  fontSize: 12.5,
+  fontSize: 13,
   lineHeight: 1.6,
 };
 
@@ -282,16 +282,16 @@ export function ConfigureSofiaSection() {
         }}>
           <Settings2 size={18} color={COLORS.gold} />
         </div>
-        <p style={{ fontSize: 13.5, color: COLORS.textMuted, lineHeight: 1.7, margin: 0 }}>
+        <p style={{ fontSize: 14, color: COLORS.textMuted, lineHeight: 1.7, margin: 0 }}>
           Estos cambios se guardan directamente en la base de datos que usa Sofía en WhatsApp. No es necesario tocar código ni volver a desplegar nada — el siguiente mensaje que responda ya va a usar la versión más reciente.
         </p>
       </Card>
 
-      {loading && <p style={{ fontSize: 13.5, color: COLORS.textMuted }}>Cargando configuración...</p>}
+      {loading && <p style={{ fontSize: 14, color: COLORS.textMuted }}>Cargando configuración...</p>}
 
       {error && (
         <Card>
-          <p style={{ fontSize: 13, color: "#e07070", lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 13, color: COLORS.danger, lineHeight: 1.6, margin: 0 }}>
             No se pudo conectar a la tabla de configuración todavía ({error}). Esto es esperado si la tabla <code>sofia_config</code> aún no existe en Supabase.
           </p>
         </Card>
@@ -301,27 +301,27 @@ export function ConfigureSofiaSection() {
         <>
           <Card style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            gap: 16, padding: "18px 22px",
-            background: whatsappEnabled ? "rgba(31,74,64,0.06)" : "rgba(192,57,43,0.08)",
-            border: `1.5px solid ${whatsappEnabled ? COLORS.green : "#c0392b"}`,
+            gap: 16, padding: "16px 24px",
+            background: whatsappEnabled ? "rgba(31,74,64,0.06)" : COLORS.dangerBg,
+            border: `1.5px solid ${whatsappEnabled ? COLORS.green : COLORS.danger}`,
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{
                 width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
-                background: whatsappEnabled ? COLORS.green : "#c0392b",
+                background: whatsappEnabled ? COLORS.green : COLORS.danger,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transition: "background 0.15s",
               }}>
                 <Power size={19} color="#fff" />
               </div>
               <div>
-                <p style={{
+                <h4 style={{
                   margin: 0, fontWeight: 700, fontSize: 15,
-                  color: whatsappEnabled ? COLORS.green : "#c0392b",
+                  color: whatsappEnabled ? COLORS.green : COLORS.danger,
                 }}>
                   {whatsappEnabled ? "Sofía al aire" : "Sofía en pausa"}
-                </p>
-                <p style={{ margin: "2px 0 0", fontSize: 12.5, color: COLORS.textMuted, lineHeight: 1.5 }}>
+                </h4>
+                <p style={{ margin: "2px 0 0", fontSize: 13, color: COLORS.textMuted, lineHeight: 1.5 }}>
                   {whatsappEnabled
                     ? "Está respondiendo mensajes de WhatsApp automáticamente."
                     : "No está respondiendo ningún mensaje de WhatsApp ahora mismo."}
@@ -338,7 +338,7 @@ export function ConfigureSofiaSection() {
                 position: "relative", width: 56, height: 30, borderRadius: 999,
                 border: "none", flexShrink: 0,
                 cursor: togglingWhatsapp ? "wait" : "pointer",
-                background: whatsappEnabled ? COLORS.green : "#c0392b",
+                background: whatsappEnabled ? COLORS.green : COLORS.danger,
                 opacity: togglingWhatsapp ? 0.6 : 1,
                 transition: "background 0.15s",
               }}
@@ -385,7 +385,7 @@ export function ConfigureSofiaSection() {
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 background: COLORS.green, border: "none", borderRadius: 8,
-                padding: "11px 20px", color: "#fff", fontSize: 14, fontWeight: 700,
+                padding: "12px 20px", color: "#fff", fontSize: 14, fontWeight: 700,
                 cursor: reindexing ? "not-allowed" : "pointer", fontFamily: "'Manrope', sans-serif",
                 boxShadow: "0 4px 14px rgba(31,74,64,0.3)", opacity: reindexing ? 0.7 : 1,
               }}
@@ -396,7 +396,7 @@ export function ConfigureSofiaSection() {
             {reindexResult && (
               <p style={{
                 marginTop: 12, fontSize: 13, lineHeight: 1.6,
-                color: reindexResult.ok ? COLORS.green : "#e07070",
+                color: reindexResult.ok ? COLORS.green : COLORS.danger,
               }}>
                 {reindexResult.ok
                   ? `✓ Listo — ${reindexResult.chunks} chunks indexados.`

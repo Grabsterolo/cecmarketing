@@ -42,12 +42,12 @@ export function SourceDot({ color, label }) {
 
 export const tableStyles = {
   cell: {
-    padding: "11px 14px", fontSize: 13, fontFamily: "'Manrope', sans-serif",
+    padding: "12px 16px", fontSize: 13, fontFamily: "'Manrope', sans-serif",
     color: COLORS.text, borderBottom: `1px solid ${COLORS.border}`,
     whiteSpace: "nowrap",
   },
   head: {
-    padding: "11px 14px", fontSize: 11, fontWeight: 700,
+    padding: "12px 16px", fontSize: 11, fontWeight: 700,
     textTransform: "uppercase", letterSpacing: "0.08em",
     color: COLORS.textMuted, background: COLORS.panelAlt,
     fontFamily: "'Manrope', sans-serif", whiteSpace: "nowrap",

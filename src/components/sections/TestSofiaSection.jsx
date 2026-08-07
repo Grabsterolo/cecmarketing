@@ -8,7 +8,7 @@ function TypingIndicator() {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 12 }}>
       <div style={avatarStyle}>S</div>
-      <div style={{ ...bubbleStyle(false), padding: "10px 14px", display: "flex", gap: 4, alignItems: "center" }}>
+      <div style={{ ...bubbleStyle(false), padding: "8px 16px", display: "flex", gap: 4, alignItems: "center" }}>
         {[0, 1, 2].map(i => (
           <span key={i} style={{
             width: 7, height: 7, borderRadius: "50%",
@@ -30,11 +30,11 @@ const avatarStyle = {
 
 function bubbleStyle(isUser) {
   return {
-    padding: "10px 14px",
+    padding: "8px 16px",
     borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
     background: isUser ? COLORS.green : COLORS.panelAlt,
     color: isUser ? "#fff" : COLORS.text,
-    fontSize: 13.5,
+    fontSize: 14,
     lineHeight: 1.6,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
@@ -148,19 +148,19 @@ export function TestSofiaSection() {
         }}>
           <FlaskConical size={18} color={COLORS.gold} />
         </div>
-        <p style={{ fontSize: 13.5, color: COLORS.textMuted, lineHeight: 1.7, margin: 0 }}>
+        <p style={{ fontSize: 14, color: COLORS.textMuted, lineHeight: 1.7, margin: 0 }}>
           Estás probando la versión actual guardada en Supabase. Cualquier cambio que hagas en{" "}
           <strong style={{ color: COLORS.green }}>Configurar a Sofía</strong> se reflejará aquí al recargar.
         </p>
       </Card>
 
       {loading && (
-        <p style={{ fontSize: 13.5, color: COLORS.textMuted }}>Cargando configuración de Sofía...</p>
+        <p style={{ fontSize: 14, color: COLORS.textMuted }}>Cargando configuración de Sofía...</p>
       )}
 
       {error && (
         <Card>
-          <p style={{ fontSize: 13, color: "#e07070", lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 13, color: COLORS.danger, lineHeight: 1.6, margin: 0 }}>
             No se pudo cargar la configuración ({error}).
           </p>
         </Card>
@@ -184,9 +184,9 @@ export function TestSofiaSection() {
               onClick={resetConversation}
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                fontSize: 12.5, fontWeight: 600, color: COLORS.textMuted,
+                fontSize: 13, fontWeight: 600, color: COLORS.textMuted,
                 background: COLORS.panelAlt, border: "none", borderRadius: 8,
-                padding: "7px 12px", cursor: "pointer",
+                padding: "8px 12px", cursor: "pointer",
               }}
             >
               <RotateCcw size={13} />
@@ -202,7 +202,7 @@ export function TestSofiaSection() {
           }}>
             {messages.length === 0 && !typing && (
               <p style={{
-                fontSize: 13.5, color: COLORS.textMuted,
+                fontSize: 14, color: COLORS.textMuted,
                 textAlign: "center", margin: "auto",
                 fontStyle: "italic", lineHeight: 1.7,
               }}>
@@ -223,14 +223,14 @@ export function TestSofiaSection() {
                   <div style={bubbleStyle(msg.role === "user")}>{msg.content}</div>
                   {msg.role === "assistant" && msg.escalated && (
                     <div style={{
-                      marginTop: 6,
-                      fontSize: 11.5,
+                      marginTop: 8,
+                      fontSize: 12,
                       fontWeight: 600,
-                      color: "#a45b00",
-                      background: "#fdf0d5",
-                      border: "1px solid #f0d29a",
+                      color: COLORS.warning,
+                      background: COLORS.warningBg,
+                      border: `1px solid ${COLORS.warningBorder}`,
                       borderRadius: 8,
-                      padding: "5px 10px",
+                      padding: "4px 8px",
                       display: "inline-block",
                     }}>
                       ⚠ Escalado{msg.escalation_reason ? `: ${msg.escalation_reason}` : ""}
@@ -242,7 +242,7 @@ export function TestSofiaSection() {
 
             {typing && <TypingIndicator />}
             {sendError && (
-              <p style={{ fontSize: 12.5, color: "#e07070", textAlign: "center", marginTop: 8 }}>{sendError}</p>
+              <p style={{ fontSize: 13, color: COLORS.danger, textAlign: "center", marginTop: 8 }}>{sendError}</p>
             )}
             <div ref={bottomRef} />
           </div>
@@ -262,8 +262,8 @@ export function TestSofiaSection() {
               disabled={typing}
               style={{
                 flex: 1, resize: "none", border: `1px solid ${COLORS.border}`,
-                borderRadius: 10, padding: "10px 14px",
-                fontFamily: "'Manrope', sans-serif", fontSize: 13.5,
+                borderRadius: 10, padding: "8px 16px",
+                fontFamily: "'Manrope', sans-serif", fontSize: 14,
                 background: COLORS.inputBg, color: COLORS.text,
                 outline: "none", lineHeight: 1.5,
                 opacity: typing ? 0.6 : 1,

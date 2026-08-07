@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
+import { Badge } from "../ui/Badge.jsx";
 import { DATA_SOURCES } from "../../constants/nav.js";
 import { useIsMobile } from "../../hooks/useIsMobile.js";
 import { supabase } from "../../lib/supabase.js";
@@ -13,14 +14,9 @@ const SOURCE_DOT_COLORS = {
 
 function ActiveBadge({ active }) {
   return (
-    <span style={{
-      fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
-      background: active ? "rgba(74,124,92,0.15)" : COLORS.panelAlt,
-      color: active ? "#4A7C5C" : COLORS.textMuted,
-      fontFamily: "'Manrope', sans-serif",
-    }}>
+    <Badge variant={active ? "success" : "default"}>
       {active ? "● Activo" : "..."}
-    </span>
+    </Badge>
   );
 }
 
@@ -84,7 +80,7 @@ export function DashboardHome({ profile, setActive }) {
 
   const pasos = [
     {
-      color: "#1877F2",
+      color: SOURCE_COLORS.meta,
       label: "INVERSIÓN PUBLICITARIA",
       numero: metaLoading
         ? "..."
@@ -93,7 +89,7 @@ export function DashboardHome({ profile, setActive }) {
       barra: 100,
     },
     {
-      color: "#7FA98C",
+      color: SOURCE_COLORS.organico,
       label: "IMPRESIONES",
       numero: metaLoading ? "..." : `${parseInt(metaData?.totals?.impressions || 0).toLocaleString()}`,
       desc: "Personas que vieron los anuncios",
@@ -186,9 +182,9 @@ export function DashboardHome({ profile, setActive }) {
 
         {/* Columna izquierda — Embudo */}
         <Card>
-          <p style={{ margin: "0 0 20px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+          <h3 style={{ margin: "0 0 20px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
             El embudo de este mes
-          </p>
+          </h3>
 
           {pasos.map((paso, i) => (
             <div key={i} style={{
@@ -225,7 +221,7 @@ export function DashboardHome({ profile, setActive }) {
             <div style={{
               background: "rgba(201,162,78,0.08)", border: "1px solid rgba(201,162,78,0.2)",
               borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 8,
-              padding: "10px 14px", marginTop: 16,
+              padding: "8px 16px", marginTop: 16,
               fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6,
             }}>
               ✦ Cada lead de Meta Ads cuesta ${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)} en promedio este mes.
@@ -238,9 +234,9 @@ export function DashboardHome({ profile, setActive }) {
 
           {/* Mejor campaña Meta */}
           <Card>
-            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            <h4 style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
               Mejor campaña Meta
-            </p>
+            </h4>
             {metaLoading ? (
               <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando datos...</p>
             ) : bestCampaign ? (
@@ -262,9 +258,9 @@ export function DashboardHome({ profile, setActive }) {
 
           {/* Conversión de Sofía */}
           <Card>
-            <p style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            <h4 style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
               Conversión de Sofía
-            </p>
+            </h4>
             {conversionLoading ? (
               <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando datos...</p>
             ) : conversionStats?.conversationsWithProspectId > 0 && conversionStats?.breakdown ? (
@@ -318,7 +314,7 @@ export function DashboardHome({ profile, setActive }) {
                 );
               })()
             ) : (
-              <p style={{ margin: 0, fontSize: 12.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
+              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
                 Sin datos todavía — este número solo cuenta conversaciones nuevas desde el 5 de agosto de 2026.
               </p>
             )}
@@ -332,9 +328,9 @@ export function DashboardHome({ profile, setActive }) {
 
         {/* Tabla de fuentes */}
         <Card>
-          <p style={{ margin: "0 0 16px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+          <h3 style={{ margin: "0 0 16px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
             Rendimiento por fuente
-          </p>
+          </h3>
 
           {/* Meta Ads */}
           <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
@@ -353,23 +349,18 @@ export function DashboardHome({ profile, setActive }) {
 
         {/* Conexiones */}
         <Card>
-          <p style={{ margin: "0 0 10px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+          <h3 style={{ margin: "0 0 10px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
             Conexiones
-          </p>
+          </h3>
           {DATA_SOURCES.map((source) => (
             <div key={source.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <div style={{ width: 7, height: 7, borderRadius: "50%", background: SOURCE_DOT_COLORS[source.key] || COLORS.textMuted, flexShrink: 0 }} />
                 <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>{source.label}</span>
               </div>
-              <span style={{
-                fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20,
-                background: source.connected ? "rgba(74,124,92,0.15)" : "rgba(220,38,38,0.08)",
-                color: source.connected ? "#4A7C5C" : "#dc2626",
-                fontFamily: "'Manrope', sans-serif",
-              }}>
+              <Badge variant={source.connected ? "success" : "danger"}>
                 {source.connected ? "Conectado" : "● Pendiente"}
-              </span>
+              </Badge>
             </div>
           ))}
         </Card>
@@ -379,7 +370,7 @@ export function DashboardHome({ profile, setActive }) {
       {/* SECCIÓN 4 — Preparando Sofía */}
       <div style={{
         background: "rgba(31,74,64,0.04)", border: "1px solid rgba(31,74,64,0.1)",
-        borderRadius: 12, padding: "18px 22px",
+        borderRadius: 12, padding: "16px 24px",
         display: "flex", alignItems: isMobile ? "flex-start" : "center",
         justifyContent: "space-between", flexDirection: isMobile ? "column" : "row",
         gap: isMobile ? 14 : 0,
@@ -387,21 +378,18 @@ export function DashboardHome({ profile, setActive }) {
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <Sparkles size={18} color={COLORS.gold} />
-            <span style={{ fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
               Sofía ya analiza tus datos
-            </span>
+            </h3>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6, maxWidth: 520 }}>
             Sofía genera un reporte diario con observaciones y recomendaciones basadas en Meta Ads.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          <span style={{
-            fontSize: 11, fontWeight: 700, padding: "6px 14px", borderRadius: 20,
-            background: "rgba(201,162,78,0.15)", color: COLORS.gold, fontFamily: "'Manrope', sans-serif",
-          }}>
+          <Badge variant="gold">
             Nuevo ✦
-          </span>
+          </Badge>
           <button
             onClick={() => setActive?.("recomendaciones")}
             style={{

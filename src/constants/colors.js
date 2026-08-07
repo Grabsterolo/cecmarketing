@@ -10,7 +10,22 @@ export const COLORS = {
   textMuted: "#6B8C80",
   border: "rgba(31,74,64,0.12)",
   sidebarMuted: "rgba(255,255,255,0.55)",
+  danger: "#DC2626",
+  dangerBg: "rgba(220,38,38,0.06)",
+  dangerBorder: "rgba(220,38,38,0.2)",
+  success: "#4A7C5C",
+  successBg: "rgba(74,124,92,0.15)",
+  warning: "#A45B00",
+  warningBg: "#FDF0D5",
+  warningBorder: "#F0D29A",
+  online: "#4ADE80",
 };
+
+// Escala tipográfica fija — usar siempre uno de estos valores para fontSize.
+export const FONT_SIZES = [11, 12, 13, 14, 15, 16, 18, 20, 22, 26, 28, 34, 38];
+
+// Escala de spacing (padding/margin/gap), siempre múltiplo de 4.
+export const SPACING = [4, 8, 12, 16, 20, 24, 32];
 
 // Colores reservados para fuentes de datos (Meta, Google, Sofía) — usados en
 // gráficos y badges del dashboard de marketing.

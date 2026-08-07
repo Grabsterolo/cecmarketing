@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Flame, ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
+import { Badge } from "../ui/Badge.jsx";
+import { ErrorBanner } from "../ui/ErrorBanner.jsx";
+import { EmptyState } from "../ui/EmptyState.jsx";
+import { SectionHeader } from "../ui/SectionHeader.jsx";
 import { supabase } from "../../lib/supabase.js";
 
 // Leads Potenciales solo cuenta conversaciones desde este punto en
@@ -93,7 +97,7 @@ function scoreTier(score) {
 }
 
 const TIER_STYLES = {
-  alto: { bg: "rgba(220,38,38,0.1)", fg: "#dc2626" },
+  alto: { bg: COLORS.dangerBg, fg: COLORS.danger },
   medio: { bg: "rgba(201,162,78,0.14)", fg: COLORS.gold },
   bajo: { bg: "rgba(31,74,64,0.08)", fg: COLORS.textMuted },
 };
@@ -101,7 +105,7 @@ const TIER_STYLES = {
 const SENTIMENT_LABEL = {
   positivo: { label: "Positivo", fg: COLORS.green, bg: "rgba(31,74,64,0.08)" },
   neutral: { label: "Neutral", fg: COLORS.textMuted, bg: "rgba(31,74,64,0.06)" },
-  negativo: { label: "Negativo", fg: "#dc2626", bg: "rgba(220,38,38,0.08)" },
+  negativo: { label: "Negativo", fg: COLORS.danger, bg: COLORS.dangerBg },
 };
 
 function formatRelative(dateStr) {
@@ -144,7 +148,7 @@ function ZenviaButton({ prospectId, phoneNumber }) {
         style={{
           display: "flex", alignItems: "center", gap: 6, textDecoration: "none",
           background: COLORS.green, color: "white", border: "none", borderRadius: 8,
-          padding: "8px 14px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
+          padding: "8px 16px", fontSize: 13, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
           whiteSpace: "nowrap",
         }}
       >
@@ -172,7 +176,7 @@ function ZenviaButton({ prospectId, phoneNumber }) {
       style={{
         display: "flex", alignItems: "center", gap: 6,
         background: COLORS.panelAlt, color: COLORS.green, border: `1px solid ${COLORS.border}`,
-        borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600,
+        borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 600,
         fontFamily: "'Manrope', sans-serif", cursor: "pointer", whiteSpace: "nowrap",
       }}
     >
@@ -184,14 +188,14 @@ function ZenviaButton({ prospectId, phoneNumber }) {
 
 const SELECT_STYLE = {
   background: COLORS.inputBg, border: `1.5px solid ${COLORS.border}`,
-  borderRadius: 8, padding: "8px 12px", color: COLORS.text, fontSize: 12.5,
+  borderRadius: 8, padding: "8px 12px", color: COLORS.text, fontSize: 13,
   outline: "none", fontFamily: "'Manrope', sans-serif", cursor: "pointer",
 };
 
 function FilterBar({ escalatedOnly, setEscalatedOnly, sentimentFilter, setSentimentFilter, scoreFilter, setScoreFilter }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: COLORS.text, fontFamily: "'Manrope', sans-serif", cursor: "pointer" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", cursor: "pointer" }}>
         <input
           type="checkbox"
           checked={escalatedOnly}
@@ -228,13 +232,13 @@ function PaginationControls({ page, totalPages, onPrev, onNext }) {
         style={{
           display: "flex", alignItems: "center", gap: 4, background: COLORS.panelAlt,
           color: COLORS.green, border: `1px solid ${COLORS.border}`, borderRadius: 8,
-          padding: "8px 12px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
+          padding: "8px 12px", fontSize: 13, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
           cursor: page <= 1 ? "not-allowed" : "pointer", opacity: page <= 1 ? 0.5 : 1,
         }}
       >
         <ChevronLeft size={14} /> Anterior
       </button>
-      <span style={{ fontSize: 12.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+      <span style={{ fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
         Página {page} de {totalPages}
       </span>
       <button
@@ -243,7 +247,7 @@ function PaginationControls({ page, totalPages, onPrev, onNext }) {
         style={{
           display: "flex", alignItems: "center", gap: 4, background: COLORS.panelAlt,
           color: COLORS.green, border: `1px solid ${COLORS.border}`, borderRadius: 8,
-          padding: "8px 12px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
+          padding: "8px 12px", fontSize: 13, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
           cursor: page >= totalPages ? "not-allowed" : "pointer", opacity: page >= totalPages ? 0.5 : 1,
         }}
       >
@@ -263,38 +267,32 @@ function LeadRow({ conv }) {
         <ScoreBadge score={score} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-            <p style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
               {conv.procedure_interest || "Procedimiento no especificado"}
             </p>
             {sentimentInfo && (
-              <span style={{
-                fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-                background: sentimentInfo.bg, color: sentimentInfo.fg, fontFamily: "'Manrope', sans-serif",
-              }}>
+              <Badge variant={sentimentInfo.fg === COLORS.danger ? "danger" : "default"} style={{ background: sentimentInfo.bg, color: sentimentInfo.fg }}>
                 {sentimentInfo.label}
-              </span>
+              </Badge>
             )}
             {conv.escalated && (
-              <span style={{
-                fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-                background: "rgba(201,162,78,0.14)", color: COLORS.gold, fontFamily: "'Manrope', sans-serif",
-              }}>
+              <Badge variant="gold">
                 Escalada
-              </span>
+              </Badge>
             )}
-            <span style={{ fontSize: 11.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+            <span style={{ fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
               {formatRelative(conv.created_at)}
             </span>
           </div>
 
           {conv.escalation_reason && (
-            <p style={{ margin: "0 0 4px", fontSize: 12.5, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
+            <p style={{ margin: "0 0 4px", fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
               {conv.escalation_reason}
             </p>
           )}
 
-          <p style={{ margin: 0, fontSize: 11.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+          <p style={{ margin: 0, fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
             {conv.message_count || 0} mensajes · {conv.channel || "whatsapp"} · {conv.phone_number || "sin número"}
           </p>
         </div>
@@ -393,15 +391,11 @@ export function LeadsCalientesSection() {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <Flame size={20} color={COLORS.gold} />
-        <h2 style={{ margin: 0, fontSize: 22, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-          Leads Potenciales
-        </h2>
-      </div>
-      <p style={{ margin: "0 0 20px", fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        Conversaciones de Sofía con más potencial de venta, ordenadas por score — a quién contactar primero.
-      </p>
+      <SectionHeader
+        icon={<Flame size={20} color={COLORS.gold} />}
+        title="Leads Potenciales"
+        subtitle="Conversaciones de Sofía con más potencial de venta, ordenadas por score — a quién contactar primero."
+      />
 
       <FilterBar
         escalatedOnly={escalatedOnly} setEscalatedOnly={updateEscalatedOnly}
@@ -409,15 +403,7 @@ export function LeadsCalientesSection() {
         scoreFilter={scoreFilter} setScoreFilter={updateScoreFilter}
       />
 
-      {error && (
-        <div style={{
-          background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)",
-          borderRadius: 8, padding: "10px 14px", fontSize: 13,
-          color: "#dc2626", fontFamily: "'Manrope', sans-serif", marginBottom: 16,
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {loading && (
         <p style={{ textAlign: "center", fontSize: 14, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", padding: "40px 0" }}>
@@ -426,19 +412,12 @@ export function LeadsCalientesSection() {
       )}
 
       {!loading && !error && visible.length === 0 && (
-        <Card>
-          <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <div style={{ fontSize: 28, color: COLORS.gold, marginBottom: 12 }}>✦</div>
-            <p style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 600, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-              Sin leads potenciales por ahora
-            </p>
-            <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
-              {totalCount > 0
-                ? "Ninguno de los resultados de esta página califica con los filtros actuales — probá otra página o cambiá el filtro de score."
-                : "No hay conversaciones que califiquen todavía con los filtros actuales."}
-            </p>
-          </div>
-        </Card>
+        <EmptyState
+          title="Sin leads potenciales por ahora"
+          description={totalCount > 0
+            ? "Ninguno de los resultados de esta página califica con los filtros actuales — probá otra página o cambiá el filtro de score."
+            : "No hay conversaciones que califiquen todavía con los filtros actuales."}
+        />
       )}
 
       {!loading && !error && visible.length > 0 && (

@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { COLORS } from "../../constants/colors.js";
+import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
+import { Badge } from "../ui/Badge.jsx";
+import { ErrorBanner } from "../ui/ErrorBanner.jsx";
+import { EmptyState } from "../ui/EmptyState.jsx";
+import { SectionHeader } from "../ui/SectionHeader.jsx";
+import { Button } from "../ui/Button.jsx";
 import { supabase } from "../../lib/supabase.js";
 
 const formatDate = (dateStr) => {
@@ -69,7 +74,7 @@ function MetaVsSofiaSnapshot({ snapshot }) {
     <Card style={{ marginBottom: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div>
-          <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 700, color: "#1877F2", fontFamily: "'Manrope', sans-serif", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 700, color: SOURCE_COLORS.meta, fontFamily: "'Manrope', sans-serif", textTransform: "uppercase", letterSpacing: "0.04em" }}>
             Meta Ads
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -85,7 +90,7 @@ function MetaVsSofiaSnapshot({ snapshot }) {
             {statCell("Total", sofia.total || 0)}
             {statCell("Escaladas", sofia.total > 0 ? `${sofia.escalationRate}%` : "—")}
           </div>
-          <p style={{ margin: "10px 0 0", fontSize: 11.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+          <p style={{ margin: "10px 0 0", fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
             {(sofia.byChannel?.facebook || 0)} desde redes sociales · {(sofia.byChannel?.whatsapp || 0)} desde WhatsApp directo
           </p>
         </div>
@@ -142,41 +147,18 @@ export function RecommendationsSection() {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-            Análisis de Sofía
-          </h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-            Reporte diario que cruza Meta Ads con las conversaciones reales de Sofía
-          </p>
-        </div>
-        <button
-          onClick={generateAnalysis}
-          disabled={generating}
-          style={{
-            background: COLORS.green, color: "white", border: "none",
-            borderRadius: 8, padding: "10px 20px", fontSize: 13,
-            fontWeight: 600, fontFamily: "'Manrope', sans-serif",
-            cursor: generating ? "not-allowed" : "pointer",
-            opacity: generating ? 0.7 : 1, flexShrink: 0, marginLeft: 16,
-          }}
-        >
-          {generating ? "Generando..." : "Generar análisis de hoy"}
-        </button>
-      </div>
+      <SectionHeader
+        title="Análisis de Sofía"
+        subtitle="Reporte diario que cruza Meta Ads con las conversaciones reales de Sofía"
+        action={
+          <Button onClick={generateAnalysis} disabled={generating} style={{ flexShrink: 0, marginLeft: 16 }}>
+            {generating ? "Generando..." : "Generar análisis de hoy"}
+          </Button>
+        }
+      />
 
       {/* Error */}
-      {error && (
-        <div style={{
-          background: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.2)",
-          borderRadius: 8, padding: "10px 14px", fontSize: 13,
-          color: "#dc2626", fontFamily: "'Manrope', sans-serif", marginBottom: 16,
-        }}>
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       {/* Loading */}
       {loading && (
@@ -194,13 +176,9 @@ export function RecommendationsSection() {
               <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", textTransform: "capitalize" }}>
                 {formatDate(today.date)}
               </p>
-              <span style={{
-                fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                background: "rgba(201,162,78,0.12)", color: COLORS.gold,
-                fontFamily: "'Manrope', sans-serif",
-              }}>
+              <Badge variant="gold">
                 Hoy
-              </span>
+              </Badge>
             </div>
             <div>{renderAnalysis(today.analysis)}</div>
           </Card>
@@ -209,25 +187,18 @@ export function RecommendationsSection() {
 
       {/* Sin análisis */}
       {!loading && !today && (
-        <Card>
-          <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <div style={{ fontSize: 28, color: COLORS.gold, marginBottom: 12 }}>✦</div>
-            <p style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 600, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
-              Sin análisis todavía
-            </p>
-            <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
-              Haz clic en "Generar análisis de hoy" para que Sofía analice los datos actuales.
-            </p>
-          </div>
-        </Card>
+        <EmptyState
+          title="Sin análisis todavía"
+          description='Haz clic en "Generar análisis de hoy" para que Sofía analice los datos actuales.'
+        />
       )}
 
       {/* Análisis anteriores */}
       {!loading && previous.length > 0 && (
         <>
-          <p style={{ margin: "24px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+          <h3 style={{ margin: "24px 0 12px", fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
             Análisis anteriores
-          </p>
+          </h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 12 }}>
             {previous.map((rec) => (
               <Card key={rec.id || rec.date}>
