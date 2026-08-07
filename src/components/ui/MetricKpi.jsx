@@ -1,7 +1,84 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { COLORS } from "../../constants/colors.js";
 
-export function MetricKpi({ label, value, sub, note }) {
+// Extrae el primer número (con signo/decimales) de un string tipo "$1,234.56"
+// o "38%" para poder animar el conteo y luego reinsertarlo en el texto original.
+function parseNumericValue(value) {
+  if (typeof value === "number") return { number: value, prefix: "", suffix: "" };
+  if (typeof value !== "string") return null;
+  const match = value.match(/-?[\d,]+(\.\d+)?/);
+  if (!match) return null;
+  const number = parseFloat(match[0].replace(/,/g, ""));
+  if (Number.isNaN(number)) return null;
+  return {
+    number,
+    prefix: value.slice(0, match.index),
+    suffix: value.slice(match.index + match[0].length),
+    decimals: match[0].includes(".") ? match[0].split(".")[1].length : 0,
+    hasCommas: match[0].includes(","),
+  };
+}
+
+function useCountUp(value, durationMs = 800) {
+  const parsed = parseNumericValue(value);
+  const [display, setDisplay] = useState(parsed ? parsed.number : null);
+  const fromRef = useRef(0);
+
+  useEffect(() => {
+    if (!parsed) return;
+    const from = fromRef.current;
+    const to = parsed.number;
+    const start = performance.now();
+    let raf;
+
+    function tick(now) {
+      const t = Math.min(1, (now - start) / durationMs);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(from + (to - from) * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
+  if (!parsed) return value;
+
+  const formatted = parsed.decimals
+    ? display.toFixed(parsed.decimals)
+    : Math.round(display).toString();
+  const withCommas = parsed.hasCommas
+    ? formatted.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    : formatted;
+
+  return `${parsed.prefix}${withCommas}${parsed.suffix}`;
+}
+
+function Sparkline({ trend }) {
+  const data = trend.map((v, i) => ({ i, v }));
+  return (
+    <div style={{ width: 60, height: 24 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={data}>
+          <Line
+            type="monotone"
+            dataKey="v"
+            stroke={COLORS.gold}
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function MetricKpi({ label, value, sub, note, trend }) {
+  const animatedValue = useCountUp(value);
+
   return (
     <div>
       <p style={{ margin: "0 0 4px", fontSize: 11, letterSpacing: "0.1em",
@@ -9,10 +86,13 @@ export function MetricKpi({ label, value, sub, note }) {
         fontFamily: "'Manrope', sans-serif" }}>
         {label}
       </p>
-      <p style={{ margin: 0, fontSize: 28, fontFamily: "'Manrope', sans-serif",
-        fontWeight: 700, color: COLORS.green, lineHeight: 1.1 }}>
-        {value}
-      </p>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+        <p style={{ margin: 0, fontSize: 28, fontFamily: "'Manrope', sans-serif",
+          fontWeight: 700, color: COLORS.green, lineHeight: 1.1 }}>
+          {animatedValue}
+        </p>
+        {trend && trend.length > 1 && <Sparkline trend={trend} />}
+      </div>
       <p style={{ margin: "4px 0 0", fontSize: 12, color: COLORS.textMuted,
         fontFamily: "'Manrope', sans-serif" }}>
         {sub}

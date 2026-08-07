@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { LayoutDashboard } from "lucide-react";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
@@ -117,6 +117,7 @@ export function MetricsSection() {
                 color: COLORS.text,
                 fontFamily: "'Manrope', sans-serif",
                 lineHeight: 1.6,
+                animation: "calloutIn 0.5s ease-out both",
               }}>
                 <span style={{ color: COLORS.gold, marginRight: 8 }}>✦</span>
                 {insight}
@@ -191,7 +192,13 @@ export function MetricsSection() {
               Gasto vs Leads por campaña
             </h3>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData} barGap={4} barCategoryGap="30%">
+              <ComposedChart data={chartData} barGap={4} barCategoryGap="30%">
+                <defs>
+                  <linearGradient id="gastoGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={SOURCE_COLORS.meta} stopOpacity={0.9} />
+                    <stop offset="100%" stopColor={COLORS.gold} stopOpacity={0.9} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} vertical={false} />
                 <XAxis dataKey="name" tick={tableStyles.tick} axisLine={false} tickLine={false} />
                 <YAxis yAxisId="left"  orientation="left"  tick={tableStyles.tick} axisLine={false} tickLine={false} width={50} />
@@ -205,9 +212,17 @@ export function MetricsSection() {
                   cursor={{ fill: COLORS.panelAlt }}
                 />
                 <Legend wrapperStyle={{ fontFamily: "'Manrope', sans-serif", fontSize: 12, paddingTop: 8 }} />
-                <Bar yAxisId="left"  dataKey="Gasto" fill={SOURCE_COLORS.meta} radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="right" dataKey="Leads" fill={COLORS.gold}        radius={[4, 4, 0, 0]} />
-              </BarChart>
+                <Bar yAxisId="left" dataKey="Gasto" fill="url(#gastoGradient)" radius={[4, 4, 0, 0]} />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="Leads"
+                  stroke={COLORS.green}
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: COLORS.green }}
+                  activeDot={{ r: 5 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </>
         )}

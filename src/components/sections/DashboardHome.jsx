@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MessageCircle, Sparkles } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { Badge } from "../ui/Badge.jsx";
@@ -78,6 +79,17 @@ export function DashboardHome({ profile, setActive }) {
       return cplA - cplB;
     })?.[0];
 
+  // Barras del embudo calculadas a partir de datos reales: cada paso mide su
+  // propia tasa de conversión (impresiones por $ invertido, leads por
+  // impresión) normalizada contra la mayor de esas dos tasas, para que el
+  // ancho refleje la eficiencia real del paso y no un número inventado.
+  const investment = parseFloat(metaData?.totals?.spend || 0);
+  const impressions = parseInt(metaData?.totals?.impressions || 0);
+  const leadsCount = parseInt(metaData?.totals?.leads || 0);
+  const impressionsPerDollar = investment > 0 ? impressions / investment : 0;
+  const leadsPerImpression = impressions > 0 ? leadsCount / impressions : 0;
+  const maxRate = Math.max(impressionsPerDollar, leadsPerImpression, 1e-9);
+
   const pasos = [
     {
       color: SOURCE_COLORS.meta,
@@ -93,14 +105,14 @@ export function DashboardHome({ profile, setActive }) {
       label: "IMPRESIONES",
       numero: metaLoading ? "..." : `${parseInt(metaData?.totals?.impressions || 0).toLocaleString()}`,
       desc: "Personas que vieron los anuncios",
-      barra: 85,
+      barra: metaLoading ? 0 : Math.round((impressionsPerDollar / maxRate) * 100),
     },
     {
       color: COLORS.gold,
       label: "LEADS GENERADOS",
       numero: metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`,
       desc: "Contactos que dejaron sus datos",
-      barra: 60,
+      barra: metaLoading ? 0 : Math.round((leadsPerImpression / maxRate) * 100),
     },
     {
       color: SOURCE_COLORS.sofia,
@@ -117,6 +129,20 @@ export function DashboardHome({ profile, setActive }) {
       barra: sofiaLoading || !sofiaStats?.total ? 0 : Math.round((sofiaStats.escalated / sofiaStats.total) * 100),
     },
   ];
+
+  // Share relativo por fuente, basado en volumen de actividad real (leads de
+  // Meta Ads vs conversaciones de Sofía). "Orgánico" no tiene una fuente de
+  // datos conectada todavía (ver DATA_SOURCES en nav.js), así que se omite
+  // en vez de inventar un número.
+  const sofiaTotal = sofiaStats?.total || 0;
+  const sourceVolumeTotal = leadsCount + sofiaTotal;
+  const sourceShare = [
+    { key: "meta", label: "Meta Ads", color: SOURCE_COLORS.meta, value: leadsCount },
+    { key: "sofia", label: "Sofía", color: SOURCE_COLORS.sofia, value: sofiaTotal },
+  ].map(s => ({
+    ...s,
+    pct: sourceVolumeTotal > 0 ? Math.round((s.value / sourceVolumeTotal) * 100) : 0,
+  }));
 
   const sourceRowStyle = {
     display: "grid",
@@ -223,6 +249,7 @@ export function DashboardHome({ profile, setActive }) {
               borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 8,
               padding: "8px 16px", marginTop: 16,
               fontSize: 13, color: COLORS.text, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6,
+              animation: "calloutIn 0.5s ease-out both",
             }}>
               ✦ Cada lead de Meta Ads cuesta ${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)} en promedio este mes.
             </div>
@@ -279,32 +306,62 @@ export function DashboardHome({ profile, setActive }) {
                 const enProceso = breakdown.sinArchivar || 0;
                 const cerradosSinVenta = conversionStats.conversationsWithProspectId - convertidos - enProceso;
 
+                const total = convertidos + enProceso + cerradosSinVenta;
+                const donutData = [
+                  { name: "Convertidos", value: convertidos, color: COLORS.success },
+                  { name: "Aún en proceso", value: enProceso, color: COLORS.gold },
+                  { name: "Cerrados sin venta", value: cerradosSinVenta, color: COLORS.textMuted },
+                ];
+
                 return (
                   <>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                      <div>
-                        <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
-                          {convertidos}
-                        </p>
-                        <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-                          Convertidos
-                        </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                      <div style={{ position: "relative", width: 120, height: 120, flexShrink: 0 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={donutData}
+                              dataKey="value"
+                              innerRadius="60%"
+                              outerRadius="80%"
+                              startAngle={90}
+                              endAngle={-270}
+                              stroke="none"
+                              isAnimationActive={true}
+                            >
+                              {donutData.map((d, i) => (
+                                <Cell key={i} fill={d.color} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div style={{
+                          position: "absolute", inset: 0,
+                          display: "flex", flexDirection: "column",
+                          alignItems: "center", justifyContent: "center",
+                          pointerEvents: "none",
+                        }}>
+                          <span style={{ fontSize: 22, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                            {total}
+                          </span>
+                          <span style={{ fontSize: 10, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                            total
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
-                          {enProceso}
-                        </p>
-                        <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-                          Aún en proceso
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
-                          {cerradosSinVenta}
-                        </p>
-                        <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-                          Cerrados sin venta
-                        </p>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                        {donutData.map((d, i) => (
+                          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: "50%", background: d.color, flexShrink: 0 }} />
+                            <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>
+                              {d.value}
+                            </span>
+                            <span style={{ fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                              {d.name}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                     <p style={{ margin: "12px 0 0", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
@@ -331,6 +388,27 @@ export function DashboardHome({ profile, setActive }) {
           <h3 style={{ margin: "0 0 16px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
             Rendimiento por fuente
           </h3>
+
+          {/* Share relativo entre fuentes */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+            {sourceShare.map((s) => (
+              <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ width: 62, fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
+                  {s.label}
+                </span>
+                <div style={{ flex: 1, height: 8, background: COLORS.border, borderRadius: 4 }}>
+                  <div style={{
+                    height: "100%", width: `${s.pct}%`,
+                    background: s.color, borderRadius: 4,
+                    transition: "width 0.8s ease-out",
+                  }} />
+                </div>
+                <span style={{ width: 36, textAlign: "right", fontSize: 12, fontWeight: 700, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
+                  {s.pct}%
+                </span>
+              </div>
+            ))}
+          </div>
 
           {/* Meta Ads */}
           <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
