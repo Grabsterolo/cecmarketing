@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Flame, ExternalLink, Copy, Check } from "lucide-react";
+import { Flame, ExternalLink, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
 import { supabase } from "../../lib/supabase.js";
 
-const WINDOW_DAYS = 14;
+// Leads Potenciales solo cuenta conversaciones desde este punto en
+// adelante — se decidió no usar el backlog histórico porque prospect_id
+// apenas se empezó a llenar el 5 de agosto y el volumen viejo no es
+// representativo (conversaciones sin prospect_id no tienen forma de abrir
+// en Zenvia, así que mezclarlas con las nuevas solo genera ruido).
+const LEADS_LIVE_SINCE = "2026-08-06T00:00:00-06:00";
+
+const PAGE_SIZE = 20;
 
 // --- Clasificación del procedimiento (0-40 / 22 / 8 pts) -------------------
 // Sin distinguir mayúsculas ni tildes, por eso todo se normaliza antes de
@@ -175,6 +182,77 @@ function ZenviaButton({ prospectId, phoneNumber }) {
   );
 }
 
+const SELECT_STYLE = {
+  background: COLORS.inputBg, border: `1.5px solid ${COLORS.border}`,
+  borderRadius: 8, padding: "8px 12px", color: COLORS.text, fontSize: 12.5,
+  outline: "none", fontFamily: "'Manrope', sans-serif", cursor: "pointer",
+};
+
+function FilterBar({ escalatedOnly, setEscalatedOnly, sentimentFilter, setSentimentFilter, scoreFilter, setScoreFilter }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginBottom: 18 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: COLORS.text, fontFamily: "'Manrope', sans-serif", cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={escalatedOnly}
+          onChange={(e) => setEscalatedOnly(e.target.checked)}
+          style={{ cursor: "pointer" }}
+        />
+        Solo escaladas
+      </label>
+
+      <select value={sentimentFilter} onChange={(e) => setSentimentFilter(e.target.value)} style={SELECT_STYLE}>
+        <option value="todos">Sentimiento: todos</option>
+        <option value="positivo">Positivo</option>
+        <option value="neutral">Neutral</option>
+        <option value="negativo">Negativo</option>
+      </select>
+
+      <select value={scoreFilter} onChange={(e) => setScoreFilter(e.target.value)} style={SELECT_STYLE}>
+        <option value="todos">Score: todos</option>
+        <option value="alto">Alto (70+)</option>
+        <option value="medio">Medio (40-69)</option>
+        <option value="bajo">Bajo (&lt;40)</option>
+      </select>
+    </div>
+  );
+}
+
+function PaginationControls({ page, totalPages, onPrev, onNext }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginTop: 20 }}>
+      <button
+        onClick={onPrev}
+        disabled={page <= 1}
+        style={{
+          display: "flex", alignItems: "center", gap: 4, background: COLORS.panelAlt,
+          color: COLORS.green, border: `1px solid ${COLORS.border}`, borderRadius: 8,
+          padding: "8px 12px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
+          cursor: page <= 1 ? "not-allowed" : "pointer", opacity: page <= 1 ? 0.5 : 1,
+        }}
+      >
+        <ChevronLeft size={14} /> Anterior
+      </button>
+      <span style={{ fontSize: 12.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+        Página {page} de {totalPages}
+      </span>
+      <button
+        onClick={onNext}
+        disabled={page >= totalPages}
+        style={{
+          display: "flex", alignItems: "center", gap: 4, background: COLORS.panelAlt,
+          color: COLORS.green, border: `1px solid ${COLORS.border}`, borderRadius: 8,
+          padding: "8px 12px", fontSize: 12.5, fontWeight: 600, fontFamily: "'Manrope', sans-serif",
+          cursor: page >= totalPages ? "not-allowed" : "pointer", opacity: page >= totalPages ? 0.5 : 1,
+        }}
+      >
+        Siguiente <ChevronRight size={14} />
+      </button>
+    </div>
+  );
+}
+
 function LeadRow({ conv }) {
   const score = computeScore(conv);
   const sentimentInfo = SENTIMENT_LABEL[normalize(conv.sentiment)];
@@ -227,30 +305,91 @@ function LeadRow({ conv }) {
   );
 }
 
+// Aplica los filtros que sí son columnas reales de sofia_conversations a un
+// query de Supabase ya iniciado (select/from). escalatedOnly reemplaza la
+// condición base de calificación (escalada O positiva+engagement) por
+// "solo escaladas"; sentimentFilter la restringe más. El filtro de score NO
+// se puede aplicar acá porque no es una columna — se aplica después, en el
+// cliente, sobre la página ya traída (ver comentario junto a "visible" más
+// abajo, en LeadsCalientesSection).
+function applyServerFilters(query, { escalatedOnly, sentimentFilter }) {
+  let q = query
+    .gte("created_at", LEADS_LIVE_SINCE)
+    .or("derived_to_appointment.is.null,derived_to_appointment.eq.false");
+
+  q = escalatedOnly
+    ? q.eq("escalated", true)
+    : q.or("escalated.eq.true,and(sentiment.eq.positivo,message_count.gte.3)");
+
+  if (sentimentFilter !== "todos") {
+    q = q.eq("sentiment", sentimentFilter);
+  }
+
+  return q;
+}
+
 export function LeadsCalientesSection() {
   const [conversations, setConversations] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [page, setPage] = useState(1);
+  const [escalatedOnly, setEscalatedOnly] = useState(false);
+  const [sentimentFilter, setSentimentFilter] = useState("todos");
+  const [scoreFilter, setScoreFilter] = useState("todos");
+
+  // Cambiar cualquier filtro vuelve a la página 1 — si no, se puede quedar
+  // viendo una página que ya no existe con el filtro nuevo.
+  function updateEscalatedOnly(value) { setEscalatedOnly(value); setPage(1); }
+  function updateSentimentFilter(value) { setSentimentFilter(value); setPage(1); }
+  function updateScoreFilter(value) { setScoreFilter(value); setPage(1); }
+
   useEffect(() => {
     (async () => {
-      const sinceIso = new Date(Date.now() - WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      setLoading(true);
+      setError(null);
 
-      const { data, error } = await supabase
-        .from("sofia_conversations")
-        .select("id, phone_number, procedure_interest, sentiment, message_count, escalated, escalation_reason, created_at, channel, prospect_id")
-        .gte("created_at", sinceIso)
-        .or("derived_to_appointment.is.null,derived_to_appointment.eq.false")
-        .or("escalated.eq.true,and(sentiment.eq.positivo,message_count.gte.3)")
-        .order("created_at", { ascending: false });
+      const filters = { escalatedOnly, sentimentFilter };
+      const offset = (page - 1) * PAGE_SIZE;
 
-      if (error) setError(error.message);
-      else setConversations(data || []);
+      const [{ data, error: dataError }, { count, error: countError }] = await Promise.all([
+        applyServerFilters(
+          supabase.from("sofia_conversations").select(
+            "id, phone_number, procedure_interest, sentiment, message_count, escalated, escalation_reason, created_at, channel, prospect_id"
+          ),
+          filters
+        )
+          .order("created_at", { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1),
+        applyServerFilters(
+          supabase.from("sofia_conversations").select("id", { count: "exact", head: true }),
+          filters
+        ),
+      ]);
+
+      if (dataError) setError(dataError.message);
+      else if (countError) setError(countError.message);
+      else {
+        setConversations(data || []);
+        setTotalCount(count || 0);
+      }
       setLoading(false);
     })();
-  }, []);
+  }, [page, escalatedOnly, sentimentFilter]);
 
-  const sorted = [...conversations].sort((a, b) => computeScore(b) - computeScore(a));
+  // Filtro de score y orden final: se hacen en el cliente sobre la página
+  // ya traída de Supabase (20 filas), no sobre el total. Es una limitación
+  // v1 aceptada — en páginas donde pocas de esas 20 califiquen para el
+  // score elegido, la lista puede verse con menos de 20 tarjetas o incluso
+  // vacía aunque totalCount/totalPages diga que hay más. No es un bug: el
+  // conteo de páginas refleja los filtros de servidor (fecha, escalada,
+  // sentimiento), no el de score, porque el score no es una columna real.
+  const visible = conversations
+    .filter((conv) => scoreFilter === "todos" || scoreTier(computeScore(conv)) === scoreFilter)
+    .sort((a, b) => computeScore(b) - computeScore(a));
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div>
@@ -260,9 +399,15 @@ export function LeadsCalientesSection() {
           Leads Potenciales
         </h2>
       </div>
-      <p style={{ margin: "0 0 24px", fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-        Conversaciones de Sofía de los últimos {WINDOW_DAYS} días con más potencial de venta, ordenadas por score — a quién contactar primero.
+      <p style={{ margin: "0 0 20px", fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+        Conversaciones de Sofía con más potencial de venta, ordenadas por score — a quién contactar primero.
       </p>
+
+      <FilterBar
+        escalatedOnly={escalatedOnly} setEscalatedOnly={updateEscalatedOnly}
+        sentimentFilter={sentimentFilter} setSentimentFilter={updateSentimentFilter}
+        scoreFilter={scoreFilter} setScoreFilter={updateScoreFilter}
+      />
 
       {error && (
         <div style={{
@@ -280,7 +425,7 @@ export function LeadsCalientesSection() {
         </p>
       )}
 
-      {!loading && !error && sorted.length === 0 && (
+      {!loading && !error && visible.length === 0 && (
         <Card>
           <div style={{ textAlign: "center", padding: "32px 0" }}>
             <div style={{ fontSize: 28, color: COLORS.gold, marginBottom: 12 }}>✦</div>
@@ -288,16 +433,27 @@ export function LeadsCalientesSection() {
               Sin leads potenciales por ahora
             </p>
             <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
-              No hay conversaciones escaladas o con buen engagement en los últimos {WINDOW_DAYS} días que no se hayan convertido ya.
+              {totalCount > 0
+                ? "Ninguno de los resultados de esta página califica con los filtros actuales — probá otra página o cambiá el filtro de score."
+                : "No hay conversaciones que califiquen todavía con los filtros actuales."}
             </p>
           </div>
         </Card>
       )}
 
-      {!loading && !error && sorted.length > 0 && (
+      {!loading && !error && visible.length > 0 && (
         <div>
-          {sorted.map((conv) => <LeadRow key={conv.id} conv={conv} />)}
+          {visible.map((conv) => <LeadRow key={conv.id} conv={conv} />)}
         </div>
+      )}
+
+      {!loading && !error && (
+        <PaginationControls
+          page={page}
+          totalPages={totalPages}
+          onPrev={() => setPage((p) => Math.max(1, p - 1))}
+          onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+        />
       )}
     </div>
   );
