@@ -267,15 +267,56 @@ export function DashboardHome({ profile, setActive }) {
             </p>
             {conversionLoading ? (
               <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando datos...</p>
-            ) : conversionStats?.conversionRate != null ? (
-              <>
-                <p style={{ margin: "0 0 2px", fontSize: 28, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
-                  {Math.round(conversionStats.conversionRate * 100)}%
-                </p>
-                <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-                  {conversionStats.converted} de {conversionStats.conversationsWithProspectId} conversaciones terminaron en venta
-                </p>
-              </>
+            ) : conversionStats?.conversationsWithProspectId > 0 && conversionStats?.breakdown ? (
+              (() => {
+                // breakdown viene de Zenvia: una key por archivingReason real
+                // ("converted", "campaignConversion", "sinArchivar", y
+                // cualquier otra razón de archivado que Zenvia use para
+                // prospectos perdidos/duplicados/etc — no hace falta
+                // enumerarlas todas). Se agrupan en 3 buckets porque con
+                // pocos días de datos casi nada se ha resuelto todavía en
+                // Zenvia (ni ganado ni perdido), y mostrar solo un % de
+                // conversión comunica algo falso ("casi nadie convierte")
+                // cuando en realidad es "casi nadie se ha resuelto todavía".
+                const breakdown = conversionStats.breakdown;
+                const convertidos = (breakdown.converted || 0) + (breakdown.campaignConversion || 0);
+                const enProceso = breakdown.sinArchivar || 0;
+                const cerradosSinVenta = conversionStats.conversationsWithProspectId - convertidos - enProceso;
+
+                return (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                      <div>
+                        <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                          {convertidos}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                          Convertidos
+                        </p>
+                      </div>
+                      <div>
+                        <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                          {enProceso}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                          Aún en proceso
+                        </p>
+                      </div>
+                      <div>
+                        <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 700, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                          {cerradosSinVenta}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                          Cerrados sin venta
+                        </p>
+                      </div>
+                    </div>
+                    <p style={{ margin: "12px 0 0", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
+                      Datos desde el 5 de agosto de 2026 — la mayoría de los prospectos recientes todavía sigue en proceso, es normal que "Convertidos" sea bajo con tan pocos días de datos.
+                    </p>
+                  </>
+                );
+              })()
             ) : (
               <p style={{ margin: 0, fontSize: 12.5, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
                 Sin datos todavía — este número solo cuenta conversaciones nuevas desde el 5 de agosto de 2026.
