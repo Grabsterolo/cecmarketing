@@ -61,6 +61,32 @@ function extractFindingTitles(weaknesses) {
   return matches.map((m) => m[1].trim());
 }
 
+// Supabase/PostgREST corta cualquier select() sin paginar en 1000 filas por
+// default — con ~300-400 conversaciones/día, un rango de solo unos pocos
+// días ya supera ese límite y trunca los días siguientes en silencio (se
+// veían días "sin conversaciones" que en realidad sí tenían datos). Se pagina
+// en bloques de 1000 hasta traer todo el rango.
+const FETCH_PAGE_SIZE = 1000;
+
+async function fetchAllInRange(from, to) {
+  const rows = [];
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("sofia_conversations")
+      .select("id, sentiment, escalated, escalation_reason, created_at")
+      .gte("created_at", `${from}T00:00:00`)
+      .lte("created_at", `${to}T23:59:59`)
+      .order("created_at", { ascending: true })
+      .range(offset, offset + FETCH_PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    rows.push(...(data || []));
+    if (!data || data.length < FETCH_PAGE_SIZE) break;
+    offset += FETCH_PAGE_SIZE;
+  }
+  return { data: rows, error: null };
+}
+
 const dateInputStyle = {
   background: COLORS.inputBg, border: `1.5px solid ${COLORS.border}`,
   borderRadius: 8, padding: "8px 12px", color: COLORS.text, fontSize: 13,
@@ -228,11 +254,7 @@ export function SofiaMetricsSection({ setActive }) {
     (async () => {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await supabase
-        .from("sofia_conversations")
-        .select("id, sentiment, escalated, escalation_reason, created_at")
-        .gte("created_at", `${from}T00:00:00`)
-        .lte("created_at", `${to}T23:59:59`);
+      const { data, error: fetchError } = await fetchAllInRange(from, to);
       if (fetchError) setError(fetchError.message);
       else setConversations(data || []);
       setLoading(false);
