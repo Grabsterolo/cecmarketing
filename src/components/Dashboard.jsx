@@ -15,7 +15,7 @@ import { BirthdaySection } from "./sections/BirthdaySection.jsx";
 
 const SECTION_TITLES = {
   inicio: "Inicio",
-  metricas: "Métricas",
+  metricas: "Métricas Meta",
   recomendaciones: "Recomendaciones",
   "leads-calientes": "Leads Potenciales",
   "auditoria-sofia": "Auditoría de Sofía",

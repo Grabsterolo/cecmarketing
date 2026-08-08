@@ -8,7 +8,7 @@ export const ROTATING_WORDS = ["campañas", "conversaciones", "métricas", "reco
 // según si las integraciones ya están conectadas (ver Fase 3 del roadmap).
 export const NAV_ITEMS = [
   { key: "inicio", label: "Inicio", icon: Home },
-  { key: "metricas", label: "Métricas", icon: LayoutDashboard },
+  { key: "metricas", label: "Métricas Meta", icon: LayoutDashboard },
   { key: "recomendaciones", label: "Recomendaciones", icon: Sparkles },
   { key: "leads-calientes", label: "Leads Potenciales", icon: Flame },
   { key: "auditoria-sofia", label: "Auditoría de Sofía", icon: ShieldCheck },
