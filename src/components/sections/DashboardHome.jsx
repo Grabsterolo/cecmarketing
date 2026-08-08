@@ -52,8 +52,6 @@ export function DashboardHome({ profile }) {
   const [metaLoading, setMetaLoading] = useState(true);
   const [sofiaStats, setSofiaStats] = useState(null);
   const [sofiaLoading, setSofiaLoading] = useState(true);
-  const [conversionStats, setConversionStats] = useState(null);
-  const [conversionLoading, setConversionLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/meta-metrics")
@@ -64,28 +62,26 @@ export function DashboardHome({ profile }) {
   }, []);
 
   useEffect(() => {
-    fetch("/api/conversion-stats")
-      .then(r => r.json())
-      .then(data => { if (!data.error) setConversionStats(data); })
-      .catch(() => {})
-      .finally(() => setConversionLoading(false));
-  }, []);
-
-  useEffect(() => {
     let mounted = true;
     async function loadSofiaStats() {
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
+      const since = startOfMonth.toISOString();
+      const countQuery = () => supabase.from("sofia_conversations").select("*", { count: "exact", head: true }).gte("created_at", since);
 
-      const [{ count: total }, { count: escalated }] = await Promise.all([
-        supabase.from("sofia_conversations").select("*", { count: "exact", head: true })
-          .gte("created_at", startOfMonth.toISOString()),
-        supabase.from("sofia_conversations").select("*", { count: "exact", head: true })
-          .gte("created_at", startOfMonth.toISOString()).eq("escalated", true),
+      const [{ count: total }, { count: escalated }, { count: positivo }, { count: neutral }, { count: negativo }] = await Promise.all([
+        countQuery(),
+        countQuery().eq("escalated", true),
+        countQuery().eq("sentiment", "positivo"),
+        countQuery().eq("sentiment", "neutral"),
+        countQuery().eq("sentiment", "negativo"),
       ]);
       if (!mounted) return;
-      setSofiaStats({ total: total || 0, escalated: escalated || 0 });
+      setSofiaStats({
+        total: total || 0, escalated: escalated || 0,
+        positivo: positivo || 0, neutral: neutral || 0, negativo: negativo || 0,
+      });
       setSofiaLoading(false);
     }
     loadSofiaStats();
@@ -276,34 +272,25 @@ export function DashboardHome({ profile }) {
         {/* Columna derecha */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* Conversión de Sofía */}
+          {/* Sentimiento de conversaciones */}
           <Card>
             <h4 style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-              Conversión de Sofía
+              Sentimiento de conversaciones
             </h4>
-            {conversionLoading ? (
+            {sofiaLoading ? (
               <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando datos...</p>
-            ) : conversionStats?.conversationsWithProspectId > 0 && conversionStats?.breakdown ? (
+            ) : sofiaStats?.total > 0 ? (
               (() => {
-                // breakdown viene de Zenvia: una key por archivingReason real
-                // ("converted", "campaignConversion", "sinArchivar", y
-                // cualquier otra razón de archivado que Zenvia use para
-                // prospectos perdidos/duplicados/etc — no hace falta
-                // enumerarlas todas). Se agrupan en 3 buckets porque con
-                // pocos días de datos casi nada se ha resuelto todavía en
-                // Zenvia (ni ganado ni perdido), y mostrar solo un % de
-                // conversión comunica algo falso ("casi nadie convierte")
-                // cuando en realidad es "casi nadie se ha resuelto todavía".
-                const breakdown = conversionStats.breakdown;
-                const convertidos = (breakdown.converted || 0) + (breakdown.campaignConversion || 0);
-                const enProceso = breakdown.sinArchivar || 0;
-                const cerradosSinVenta = conversionStats.conversationsWithProspectId - convertidos - enProceso;
-
-                const total = convertidos + enProceso + cerradosSinVenta;
+                const { total, positivo, neutral, negativo } = sofiaStats;
+                // sentiment puede venir null en conversaciones muy cortas que
+                // Sofía no llega a clasificar — se muestran aparte en vez de
+                // omitirlas, para que el donut siempre sume el total real.
+                const sinClasificar = Math.max(0, total - positivo - neutral - negativo);
                 const donutData = [
-                  { name: "Convertidos", value: convertidos, color: COLORS.success },
-                  { name: "Aún en proceso", value: enProceso, color: COLORS.gold },
-                  { name: "Cerrados sin venta", value: cerradosSinVenta, color: COLORS.textMuted },
+                  { name: "Positivo", value: positivo, color: COLORS.success },
+                  { name: "Neutral", value: neutral, color: COLORS.gold },
+                  { name: "Negativo", value: negativo, color: COLORS.danger },
+                  ...(sinClasificar > 0 ? [{ name: "Sin clasificar", value: sinClasificar, color: COLORS.textMuted }] : []),
                 ];
 
                 return (
@@ -358,14 +345,14 @@ export function DashboardHome({ profile }) {
                       </div>
                     </div>
                     <p style={{ margin: "12px 0 0", fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.5 }}>
-                      Datos desde el 5 de agosto de 2026 — la mayoría de los prospectos recientes todavía sigue en proceso, es normal que "Convertidos" sea bajo con tan pocos días de datos.
+                      Este mes, según el tono detectado en cada conversación con Sofía.
                     </p>
                   </>
                 );
               })()
             ) : (
               <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6 }}>
-                Sin datos todavía — este número solo cuenta conversaciones nuevas desde el 5 de agosto de 2026.
+                Sin conversaciones este mes todavía.
               </p>
             )}
           </Card>
