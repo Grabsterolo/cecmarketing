@@ -16,14 +16,21 @@ import { supabase } from "../../lib/supabase.js";
 // mostrar y hay que avisarlo en vez de dejar una gráfica vacía sin explicar.
 const SOFIA_DATA_LIVE_SINCE = "2026-07-26";
 
+// created_at se guarda en UTC, pero el equipo opera en hora de Costa Rica
+// (UTC-6, sin horario de verano) — bucketear o elegir rangos por fecha UTC
+// corre "hoy" hasta 6 horas adelante y desplaza conversaciones al día
+// siguiente. Mismo patrón que ya usan LeadsCalientesSection y
+// daily-analysis.js.
+function crDateStr(date) {
+  return date.toLocaleDateString("en-CA", { timeZone: "America/Costa_Rica" });
+}
+
 function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return crDateStr(new Date());
 }
 
 function daysAgoISO(n) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return crDateStr(new Date(Date.now() - n * 86400000));
 }
 
 function normalize(str) {
@@ -75,8 +82,8 @@ async function fetchAllInRange(from, to) {
     const { data, error } = await supabase
       .from("sofia_conversations")
       .select("id, sentiment, escalated, escalation_reason, created_at")
-      .gte("created_at", `${from}T00:00:00`)
-      .lte("created_at", `${to}T23:59:59`)
+      .gte("created_at", `${from}T00:00:00-06:00`)
+      .lte("created_at", `${to}T23:59:59-06:00`)
       .order("created_at", { ascending: true })
       .range(offset, offset + FETCH_PAGE_SIZE - 1);
     if (error) return { data: null, error };
@@ -122,7 +129,8 @@ function buildDailySeries(conversations, from, to) {
   }
 
   conversations.forEach((conv) => {
-    const day = (conv.created_at || "").slice(0, 10);
+    if (!conv.created_at) return;
+    const day = crDateStr(new Date(conv.created_at));
     const bucket = byDay.get(day);
     if (!bucket) return;
     bucket.Conversaciones += 1;
@@ -267,8 +275,8 @@ export function SofiaMetricsSection({ setActive }) {
       const { data } = await supabase
         .from("sofia_audits")
         .select("id, created_at, weaknesses")
-        .gte("created_at", `${from}T00:00:00`)
-        .lte("created_at", `${to}T23:59:59`)
+        .gte("created_at", `${from}T00:00:00-06:00`)
+        .lte("created_at", `${to}T23:59:59-06:00`)
         .order("created_at", { ascending: false })
         .limit(1);
       setAudit((data && data[0]) || null);
