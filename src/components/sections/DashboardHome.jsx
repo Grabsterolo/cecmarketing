@@ -129,8 +129,11 @@ export function DashboardHome({ profile }) {
     },
     {
       color: SOURCE_COLORS.sofia,
-      label: "CONVERSACIONES SOFÍA",
+      label: "CONVERSACIONES SOFÍA ESTE MES",
       numero: sofiaLoading ? "..." : `${sofiaStats?.total || 0}`,
+      // "Este mes" (mes a la fecha) es una ventana distinta al rango de 15
+      // días que trae Métricas Sofía por default — se aclara acá para que
+      // los dos números no parezcan contradecirse.
       desc: sofiaLoading
         ? "Cargando..."
         : sofiaStats?.total > 0
