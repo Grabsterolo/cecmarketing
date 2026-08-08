@@ -6,6 +6,7 @@ import { Logo } from "./ui/Logo.jsx";
 import { Sidebar, MobileDrawer } from "./layout/Sidebar.jsx";
 import { DashboardHome } from "./sections/DashboardHome.jsx";
 import { MetricsSection } from "./sections/MetricsSection.jsx";
+import { SofiaMetricsSection } from "./sections/SofiaMetricsSection.jsx";
 import { RecommendationsSection } from "./sections/RecommendationsSection.jsx";
 import { LeadsCalientesSection } from "./sections/LeadsCalientesSection.jsx";
 import { SofiaAuditSection } from "./sections/SofiaAuditSection.jsx";
@@ -16,6 +17,7 @@ import { BirthdaySection } from "./sections/BirthdaySection.jsx";
 const SECTION_TITLES = {
   inicio: "Inicio",
   metricas: "Métricas Meta",
+  "metricas-sofia": "Métricas Sofía",
   recomendaciones: "Recomendaciones",
   "leads-calientes": "Leads Potenciales",
   "auditoria-sofia": "Auditoría de Sofía",
@@ -71,6 +73,7 @@ export function Dashboard({ onLogout, profile }) {
     switch (displayActive) {
       case "inicio": return <DashboardHome profile={profile} setActive={navigate} />;
       case "metricas": return <MetricsSection />;
+      case "metricas-sofia": return <SofiaMetricsSection setActive={navigate} />;
       case "recomendaciones": return <RecommendationsSection />;
       case "leads-calientes": return <LeadsCalientesSection />;
       case "auditoria-sofia": return <SofiaAuditSection />;
