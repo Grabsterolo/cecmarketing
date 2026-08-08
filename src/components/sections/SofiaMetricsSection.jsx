@@ -67,7 +67,7 @@ const dateInputStyle = {
   outline: "none", fontFamily: "'Manrope', sans-serif",
 };
 
-function DateRangePicker({ from, to, setFrom, setTo, isMobile }) {
+function DateRangePicker({ from, to, setFrom, setTo }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
@@ -278,7 +278,7 @@ export function SofiaMetricsSection({ setActive }) {
         subtitle="Volumen, escalación y calidad de las conversaciones de Sofía en el rango elegido."
       />
 
-      <DateRangePicker from={from} to={to} setFrom={setFrom} setTo={setTo} isMobile={isMobile} />
+      <DateRangePicker from={from} to={to} setFrom={setFrom} setTo={setTo} />
 
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
