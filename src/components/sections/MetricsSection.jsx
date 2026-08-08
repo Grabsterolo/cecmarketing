@@ -80,6 +80,14 @@ export function MetricsSection() {
 
   const insight = metaData ? getMetaInsight(metaData.campaigns, metaData.totals) : null;
 
+  const bestCampaign = (metaData?.campaigns ?? [])
+    .filter(c => parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0) > 0)
+    .sort((a, b) => {
+      const cplA = parseFloat(a.spend) / parseInt(a.actions?.find(x => x.action_type === "lead")?.value || 1);
+      const cplB = parseFloat(b.spend) / parseInt(b.actions?.find(x => x.action_type === "lead")?.value || 1);
+      return cplA - cplB;
+    })[0];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
@@ -153,6 +161,33 @@ export function MetricsSection() {
                 note="Solo campañas con leads"
               />
             </div>
+
+            {/* Mejor campaña Meta */}
+            {bestCampaign && (
+              <div style={{
+                background: COLORS.panelAlt, border: `1px solid ${COLORS.border}`,
+                borderRadius: 10, padding: "14px 18px", marginBottom: 20,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                flexWrap: "wrap", gap: 12,
+              }}>
+                <div>
+                  <p style={{ margin: "0 0 2px", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                    Mejor campaña
+                  </p>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif" }}>
+                    {bestCampaign.campaign_name}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ margin: "0 0 2px", fontSize: 20, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
+                    {`$${(parseFloat(bestCampaign.spend) / parseInt(bestCampaign.actions?.find(a => a.action_type === "lead")?.value || 1)).toFixed(2)}`}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+                    Costo por lead
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Tabla campañas */}
             <div style={{ overflowX: "auto" }}>

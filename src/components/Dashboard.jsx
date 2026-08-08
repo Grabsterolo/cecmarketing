@@ -71,7 +71,7 @@ export function Dashboard({ onLogout, profile }) {
 
   function renderSection() {
     switch (displayActive) {
-      case "inicio": return <DashboardHome profile={profile} setActive={navigate} />;
+      case "inicio": return <DashboardHome profile={profile} />;
       case "metricas": return <MetricsSection />;
       case "metricas-sofia": return <SofiaMetricsSection setActive={navigate} />;
       case "recomendaciones": return <RecommendationsSection />;

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { MessageCircle, Sparkles } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { COLORS, SOURCE_COLORS } from "../../constants/colors.js";
 import { Card } from "../ui/Card.jsx";
@@ -21,7 +20,33 @@ function ActiveBadge({ active }) {
   );
 }
 
-export function DashboardHome({ profile, setActive }) {
+// Indicador chiquito de conexiones — solo debe llamar la atención cuando
+// algo esté desconectado (antes era una tarjeta completa con una fila por
+// fuente, ver Conexiones más abajo).
+function ConnectionIndicator() {
+  const disconnected = DATA_SOURCES.filter((s) => !s.connected);
+
+  if (disconnected.length > 0) {
+    return (
+      <Badge variant="danger">
+        {disconnected.map((s) => s.label).join(", ")} desconectado
+      </Badge>
+    );
+  }
+
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      {DATA_SOURCES.map((s) => (
+        <span key={s.key} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: SOURCE_DOT_COLORS[s.key] || COLORS.textMuted, flexShrink: 0 }} />
+          {s.label} ✓
+        </span>
+      ))}
+    </span>
+  );
+}
+
+export function DashboardHome({ profile }) {
   const isMobile = useIsMobile();
   const [metaData, setMetaData] = useState(null);
   const [metaLoading, setMetaLoading] = useState(true);
@@ -70,14 +95,6 @@ export function DashboardHome({ profile, setActive }) {
   const totalInvestment = metaLoading
     ? "..."
     : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-
-  const bestCampaign = metaData?.campaigns
-    ?.filter(c => parseInt(c.actions?.find(a => a.action_type === "lead")?.value || 0) > 0)
-    ?.sort((a, b) => {
-      const cplA = parseFloat(a.spend) / parseInt(a.actions?.find(x => x.action_type === "lead")?.value || 1);
-      const cplB = parseFloat(b.spend) / parseInt(b.actions?.find(x => x.action_type === "lead")?.value || 1);
-      return cplA - cplB;
-    })?.[0];
 
   // Barras del embudo calculadas a partir de datos reales: cada paso mide su
   // propia tasa de conversión (impresiones por $ invertido, leads por
@@ -259,30 +276,6 @@ export function DashboardHome({ profile, setActive }) {
         {/* Columna derecha */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* Mejor campaña Meta */}
-          <Card>
-            <h4 style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-              Mejor campaña Meta
-            </h4>
-            {metaLoading ? (
-              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Cargando datos...</p>
-            ) : bestCampaign ? (
-              <>
-                <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: COLORS.green, fontFamily: "'Manrope', sans-serif", lineHeight: 1.4 }}>
-                  {bestCampaign.campaign_name}
-                </p>
-                <p style={{ margin: "0 0 2px", fontSize: 28, fontWeight: 700, color: COLORS.gold, fontFamily: "'Manrope', sans-serif", lineHeight: 1.1 }}>
-                  {`$${(parseFloat(bestCampaign.spend) / parseInt(bestCampaign.actions?.find(a => a.action_type === "lead")?.value || 1)).toFixed(2)}`}
-                </p>
-                <p style={{ margin: 0, fontSize: 11, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>
-                  Costo por lead
-                </p>
-              </>
-            ) : (
-              <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif" }}>Sin campañas con leads</p>
-            )}
-          </Card>
-
           {/* Conversión de Sofía */}
           <Card>
             <h4 style={{ margin: "0 0 12px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
@@ -380,106 +373,50 @@ export function DashboardHome({ profile, setActive }) {
         </div>
       </div>
 
-      {/* SECCIÓN 3 — Rendimiento por fuente + Conexiones */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 16 }}>
-
-        {/* Tabla de fuentes */}
-        <Card>
-          <h3 style={{ margin: "0 0 16px", fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
+      {/* SECCIÓN 3 — Rendimiento por fuente, con indicador de conexiones en el encabezado */}
+      <Card>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
             Rendimiento por fuente
           </h3>
+          <ConnectionIndicator />
+        </div>
 
-          {/* Share relativo entre fuentes */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
-            {sourceShare.map((s) => (
-              <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ width: 62, fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
-                  {s.label}
-                </span>
-                <div style={{ flex: 1, height: 8, background: COLORS.border, borderRadius: 4 }}>
-                  <div style={{
-                    height: "100%", width: `${s.pct}%`,
-                    background: s.color, borderRadius: 4,
-                    transition: "width 0.8s ease-out",
-                  }} />
-                </div>
-                <span style={{ width: 36, textAlign: "right", fontSize: 12, fontWeight: 700, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
-                  {s.pct}%
-                </span>
+        {/* Share relativo entre fuentes */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+          {sourceShare.map((s) => (
+            <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ width: 62, fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
+                {s.label}
+              </span>
+              <div style={{ flex: 1, height: 8, background: COLORS.border, borderRadius: 4 }}>
+                <div style={{
+                  height: "100%", width: `${s.pct}%`,
+                  background: s.color, borderRadius: 4,
+                  transition: "width 0.8s ease-out",
+                }} />
               </div>
-            ))}
-          </div>
-
-          {/* Meta Ads */}
-          <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: SOURCE_COLORS.meta, flexShrink: 0 }} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Meta Ads</span>
-            </div>
-            {metricCell("Gasto", metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
-            {metricCell("CPL", metaLoading ? "..." : (metaData?.totals?.leads > 0
-              ? `$${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}`
-              : "—"))}
-            {metricCell("Leads", metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`)}
-            <div style={{ textAlign: "right" }}><ActiveBadge active={!!metaData} /></div>
-          </div>
-        </Card>
-
-        {/* Conexiones */}
-        <Card>
-          <h3 style={{ margin: "0 0 10px", fontSize: 15, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-            Conexiones
-          </h3>
-          {DATA_SOURCES.map((source) => (
-            <div key={source.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", background: SOURCE_DOT_COLORS[source.key] || COLORS.textMuted, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>{source.label}</span>
-              </div>
-              <Badge variant={source.connected ? "success" : "danger"}>
-                {source.connected ? "Conectado" : "● Pendiente"}
-              </Badge>
+              <span style={{ width: 36, textAlign: "right", fontSize: 12, fontWeight: 700, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}>
+                {s.pct}%
+              </span>
             </div>
           ))}
-        </Card>
+        </div>
 
-      </div>
-
-      {/* SECCIÓN 4 — Preparando Sofía */}
-      <div style={{
-        background: "rgba(31,74,64,0.04)", border: "1px solid rgba(31,74,64,0.1)",
-        borderRadius: 12, padding: "16px 24px",
-        display: "flex", alignItems: isMobile ? "flex-start" : "center",
-        justifyContent: "space-between", flexDirection: isMobile ? "column" : "row",
-        gap: isMobile ? 14 : 0,
-      }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <Sparkles size={18} color={COLORS.gold} />
-            <h3 style={{ margin: 0, fontSize: 16, fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: COLORS.green }}>
-              Sofía ya analiza tus datos
-            </h3>
+        {/* Meta Ads */}
+        <div style={{ ...sourceRowStyle, borderBottom: "none" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: SOURCE_COLORS.meta, flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, fontFamily: "'Manrope', sans-serif" }}>Meta Ads</span>
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: COLORS.textMuted, fontFamily: "'Manrope', sans-serif", lineHeight: 1.6, maxWidth: 520 }}>
-            Sofía genera un reporte diario con observaciones y recomendaciones basadas en Meta Ads.
-          </p>
+          {metricCell("Gasto", metaLoading ? "..." : `$${parseFloat(metaData?.totals?.spend || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`)}
+          {metricCell("CPL", metaLoading ? "..." : (metaData?.totals?.leads > 0
+            ? `$${(parseFloat(metaData.totals.spend) / parseInt(metaData.totals.leads)).toFixed(2)}`
+            : "—"))}
+          {metricCell("Leads", metaLoading ? "..." : `${parseInt(metaData?.totals?.leads || 0)}`)}
+          <div style={{ textAlign: "right" }}><ActiveBadge active={!!metaData} /></div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-          <Badge variant="gold">
-            Nuevo ✦
-          </Badge>
-          <button
-            onClick={() => setActive?.("recomendaciones")}
-            style={{
-              background: COLORS.green, color: "white", border: "none",
-              borderRadius: 8, padding: "8px 16px", fontSize: 13,
-              fontWeight: 600, fontFamily: "'Manrope', sans-serif", cursor: "pointer",
-            }}
-          >
-            Ver análisis →
-          </button>
-        </div>
-      </div>
+      </Card>
 
     </div>
   );
